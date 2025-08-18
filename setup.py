@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pygator",
-    version="0.1.3",
+    version="0.1.4",
     packages=find_packages(),   # will find uf_optics and subfolders
     install_requires=[],        # list dependencies if needed
     description="A package for optical utilities",
