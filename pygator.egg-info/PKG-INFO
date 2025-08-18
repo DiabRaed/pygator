@@ -1,3 +1,20 @@
+Metadata-Version: 2.4
+Name: pygator
+Version: 0.1.1
+Summary: A collection of functions useful for Gaussian optics.
+Home-page: https://github.com/DiabRaed/pygator
+Author: Raed Diab
+Author-email: Raed Diab <contact@raeddiab.com>
+Project-URL: Homepage, https://github.com/DiabRaed/pygator
+Project-URL: Bug Tracker, https://github.com/DiabRaed/pygator/issues
+Keywords: LIGO,LISA,optics,laser,UF
+Description-Content-Type: text/markdown
+Requires-Dist: numpy<2.0,>=1.24
+Requires-Dist: matplotlib>=3.6
+Requires-Dist: scipy>=1.10
+Dynamic: author
+Dynamic: home-page
+
 # Gatorspy
 
 
@@ -6,8 +23,8 @@ This is a repository for the University of Florida LIGO and LISA Optics groups. 
 The package can be installed from the source
 
 ```
-git clone https://github.com/DiabRaed/pygator
-cd pygator
+git clone https://git.ligo.org/raed.diab/gatorspy.git 
+cd gatorspy
 pip install -e .
 ```
 
@@ -17,16 +34,6 @@ Once you have installed and built gatorspy you can get updates and rebuild it by
 ```
 git pull
 ```
-
-## Install using pip
-
-The package could also be installed via pip using 
-
-```
-pip install pygator
-```
-
-
 ## Add your files
 
 - [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
