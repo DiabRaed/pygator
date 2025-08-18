@@ -133,9 +133,8 @@ def size_mismatch_scattering(x, y, q, n, m):
 # x_sym=sp.symbols('x_sym')
 # y_sym=sp.symbols('y_sym')
 def HG_mode_num(x, y, q, n, m, wavelength):
-        """
-    Calculate numerically the amplitude of the HG_nm mode at position (x, y) with beam waist radius w_z.
-    
+    """
+    Calculate symbolically the amplitude of the HG_nm mode at position (x, y) with beam waist radius w_z.
     Parameters:
         x (float): x-coordinate.
         y (float): y-coordinate.
@@ -176,6 +175,7 @@ def HG_mode_num(x, y, q, n, m, wavelength):
     amplitude = (normalization_factor * hermite_x * hermite_y * np.exp(exponent) * wavefront * Gouy_term) / w
     
     return {"U": amplitude, "w": w, "w0": w0, "zR": zR, "Rc": Rc, "Gouy": Gouy_phase_z, 'z': z}
+
 
 
 def mismatch_calculator(q1,q2,percentage=True):

@@ -1,4 +1,4 @@
-# Gatorspy
+# pygator
 
 
 This is a repository for the University of Florida LIGO and LISA Optics groups. Here you can find functions that are commonly and reguarly used in the lab. 
@@ -11,8 +11,8 @@ cd pygator
 pip install -e .
 ```
 
-## Rebuilding gatorspy
-Once you have installed and built gatorspy you can get updates and rebuild it by executing the following commands from gatorspy repository directory 
+## Rebuilding pygator
+Once you have installed and built pygator you can get updates and rebuild it by executing the following commands from pygator repository directory 
 
 ```
 git pull
