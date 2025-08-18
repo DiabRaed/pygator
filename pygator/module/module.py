@@ -614,6 +614,7 @@ def fit_beam_profile_curve_fit(zx_data, wx_data, zy_data, wy_data, w0guess, z0gu
 
     return sol_x, sol_y
 
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.odr import Model, RealData, ODR
@@ -887,3 +888,84 @@ def calculate_focal_length(w0x_in,w0y_in,zx_in,zy_in,w0x_out,w0y_out,zx_out,zy_o
         fx,fy=round(np.real(fx),4),round(np.real(fy),4)
     return fx, fy
 
+
+
+def read_beam_profile_continous(file_path,start_position,end_position,print_files=False,z_std=0.007):
+    """A function that reads a continous beam profile measurement. It slices 
+    the time series, reading time,wx,wy then calculating the mean
+    and standard deviation.
+    file path: the path to the file to be read
+    start_position: The starting position in inches
+    end_position: The ending position in inches
+    
+    returns: 
+    wx/y: the mean of wx/y at each slice
+    wx/y_std: the standard deviation of wx/y at each slice
+    z=np.linspace(start_position,end_position,number_of_slices) in meteres
+    optional: plot each time series reading
+    """
+    import statistics
+    encoding='latin1'
+    df = pd.read_csv(file_path, sep=',', skiprows=1, encoding=encoding)
+    # df_selected = df.iloc[:, [-3, -2]]
+    t=df.iloc[:,0]
+    wx_raw = (df.iloc[:, 1]*1e-6)/2
+    wy_raw = (df.iloc[:, 2]*1e-6)/2
+
+    step_size=t[1]-t[0]
+    current_index=0
+    times=[]
+    wx_values=[] #this is the actual time series of wx
+    wy_values=[]
+    time_intervals=[]
+    wx_intervals=[]
+    wy_intervals=[]
+    wx=[] #these are the mean values of the waist
+    wy=[]
+    wx_std=[]
+    wy_std=[]
+    while current_index < (len(t)-1):
+        # print(current_index,i)
+        if t[current_index+1]-t[current_index] > 5*step_size:
+            # print(True)
+            times.append(time_intervals)
+            wx_values.append(wx_intervals)
+            wy_values.append(wy_intervals)
+            wx.append(statistics.mean(wx_intervals))
+            wy.append(statistics.mean(wy_intervals))
+            # print(wx_intervals)
+            try: 
+                wx_std.append(statistics.stdev(wx_intervals))
+                wy_std.append(statistics.stdev(wy_intervals))
+            except:
+                wx_std.append(5e-6)
+                wy_std.append(5e-6)
+            if print_files==True:
+                plt.plot(time_intervals,wx_intervals,label='wx')
+                plt.plot(time_intervals,wy_intervals,label='wy')
+                plt.xlabel("Time [s]")   
+                plt.ylabel("w0 [µm]")
+                plt.show() 
+            time_intervals=[]
+            wx_intervals=[]
+            wy_intervals=[]
+        else:
+            # print(False)
+            time_intervals.append(t[current_index])
+            wx_intervals.append(wx_raw[current_index])
+            wy_intervals.append(wy_raw[current_index])
+
+        current_index+=1
+
+        if (current_index+1)==len(t):
+            # print(True)
+            times.append(t[-len(times[0]):])
+            wx_values.append(wx[-len(times[0]):])
+            wy_values.append(wy[-len(times[0]):])
+            wx.append(statistics.mean(wx_intervals))
+            wy.append(statistics.mean(wy_intervals))
+            wx_std.append(statistics.stdev(wx_intervals))
+            wy_std.append(statistics.stdev(wy_intervals))
+    z=np.linspace(start_position*0.0254,end_position*0.0254,len(times))
+
+    return np.array(wx),np.array(wy),np.array(wx_std),np.array(wy_std),np.array(z),times
