@@ -29,7 +29,7 @@ def waist_location_mismatch_calculator(q1,q2):
 
 wavelength=1064e-9 #m
 
-import numpy as np
+
 
 def diagonalize_qpd(QPD1_lateral, QPD2_lateral, QPD1_tilt, QPD2_tilt):
     # Define matrix A
@@ -55,8 +55,6 @@ def diagonalize_qpd(QPD1_lateral, QPD2_lateral, QPD1_tilt, QPD2_tilt):
 
 
 import sympy as sp
-import numpy as np
-import matplotlib.pyplot as plt
 from scipy.special import erf, erfc
 from sympy import Symbol
 # Define symbolic variables
@@ -132,50 +130,66 @@ def size_mismatch_scattering(x, y, q, n, m):
 
 # x_sym=sp.symbols('x_sym')
 # y_sym=sp.symbols('y_sym')
+
+
+
 def HG_mode_num(x, y, q, n, m, wavelength=1064e-9):
     """
-    Calculate symbolically the amplitude of the HG_nm mode at position (x, y) with beam waist radius w_z.
+    Calculate the 2D amplitude of the Hermite-Gaussian HG_nm mode on a grid.
+    
     Parameters:
-        x (float): x-coordinate.
-        y (float): y-coordinate.
-        q (complex): Complex beam parameter.
+        x (array_like): 1D array of x-coordinates.
+        y (array_like): 1D array of y-coordinates.
+        q (complex): Complex beam parameter (q = z + i zR).
         n (int): Mode index in the x-direction.
         m (int): Mode index in the y-direction.
-        gouy (float): Gouy phase in degrees.
+        wavelength (float): Wavelength in meters (default: 1064 nm).
         
     Returns:
-        dict: Dictionary containing the mode amplitude and other parameters like beam waist (w), Rayleigh range (zR), etc.
+        dict: Dictionary containing:
+            - 'U': 2D complex field amplitude array.
+            - 'I': 2D intensity array |U|^2.
+            - 'X', 'Y': meshgrid arrays.
+            - beam parameters (w, w0, zR, Rc, Gouy, z).
     """
-    # Constants
-    w0 = np.sqrt(1 * np.imag(q) * wavelength / np.pi)
+    # Make meshgrid
+    X, Y = np.meshgrid(x, y)
+
+    # Beam parameters
     zR = np.imag(q)
-    if np.real(q)==0:
-        Rc = np.inf 
-    else:
-        Rc= (np.abs(q) ** 2) / np.real(q)
-    k = 2 * np.pi / wavelength
     z = np.real(q)
+    w0 = np.sqrt(wavelength * zR / np.pi)
+    k = 2 * np.pi / wavelength
     w = w0 * np.sqrt(1 + (z / zR) ** 2)
+    Rc = np.inf if z == 0 else (np.abs(q) ** 2) / z
 
     # Hermite polynomials
-    normalization_factor = 1 / np.sqrt(((2 ** (n + m - 1)) * np.pi * math.factorial(n) *math.factorial(m)))
-    exponent = - (x ** 2 + y ** 2) / (w ** 2)
-    hermite_x = np.polynomial.hermite.hermval(np.sqrt(2) * x / w, [0]*n + [1])
-    hermite_y = np.polynomial.hermite.hermval(np.sqrt(2) * y / w, [0]*m + [1])
-    
-    # Wavefront
-    wavefront = np.exp(-1j * k * (x ** 2 + y ** 2) / (2 * Rc))
-    
-    # Gouy phase
-    Gouy_phase = np.arctan(z / zR)
-    # gouy_phase = gouy * np.pi / 180
-    Gouy_term = np.exp(1j * (n + m + 1) * Gouy_phase)
-    
-    # Amplitude
-    amplitude = (normalization_factor * hermite_x * hermite_y * np.exp(exponent) * wavefront * Gouy_term) / w
-    
-    return {"U": amplitude, "w": w, "w0": w0, "zR": zR, "Rc": Rc, "Gouy": Gouy_phase, 'z': z}
+    hermite_x = np.polynomial.hermite.Hermite.basis(n)(np.sqrt(2) * X / w)
+    hermite_y = np.polynomial.hermite.Hermite.basis(m)(np.sqrt(2) * Y / w)
 
+    # Normalization factor
+    norm = 1.0 / np.sqrt((2 ** (n + m-1)) * math.factorial(n) * math.factorial(m) * np.pi)
+
+    # Field terms
+    exponent = np.exp(-(X ** 2 + Y ** 2) / (w ** 2))
+    wavefront = np.exp(-1j * k * (X ** 2 + Y ** 2) / (2 * Rc))
+    Gouy_phase = np.arctan(z / zR)
+    Gouy_term = np.exp(1j * (n + m + 1) * Gouy_phase)
+
+    # Amplitude
+    U = (norm * hermite_x * hermite_y * exponent * wavefront * Gouy_term) / w
+
+    return {
+        "U": U,               # complex field
+        "X": X,
+        "Y": Y,
+        "w": w,
+        "w0": w0,
+        "zR": zR,
+        "Rc": Rc,
+        "Gouy": Gouy_phase,
+        "z": z
+    }
 
 
 def mismatch_calculator(q1,q2,percentage=True):
@@ -411,7 +425,7 @@ def make_thermal_lens(self, model):
             model.BS.surface_map = sec_srf_map
 
 
-import numpy as np
+
 from scipy.optimize import curve_fit
 
 def fit_QPD_slope_gamma(MM_values, QPD1y_slope):
@@ -615,8 +629,8 @@ def fit_beam_profile_curve_fit(zx_data, wx_data, zy_data, wy_data, w0guess, z0gu
     return sol_x, sol_y
 
 
-import numpy as np
-import matplotlib.pyplot as plt
+
+
 from scipy.odr import Model, RealData, ODR
 
 def fit_beam_profile_ODR(
