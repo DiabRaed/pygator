@@ -63,7 +63,7 @@ from sympy import Symbol
 x, y, a, w1,zR,w01,w02,w0, w ,k, Rc, gouy,z,z1, z2 , R, A, delta_z,epsilon , E0, Omega, omega= sp.symbols('x y a w1 zR w01 w02 w0 w k Rc gouy z,z1 z2 R A delta_z epsilon E0 Omega omega', real=True, positive=True)
 
 
-def HG_mode_sym(x, y, q, n, m):
+def HG_mode_sym(x, y, q, n, m, wavelength = 1064e-9):
     """
     Calculate symbolically the amplitude of the HG_nm mode at position (x, y) with beam waist radius w_z.
     
@@ -78,7 +78,7 @@ def HG_mode_sym(x, y, q, n, m):
     Returns:
         dict: Dictionary containing the mode amplitude and other parameters like beam waist (w), Rayleigh range (zR), etc.
     """
-    wavelength = 1064e-9
+
     w0 = sp.sqrt(sp.im(q) * wavelength / np.pi)
     zR = sp.im(q)
     if sp.re(q) == 0:
@@ -132,7 +132,7 @@ def size_mismatch_scattering(x, y, q, n, m):
 
 # x_sym=sp.symbols('x_sym')
 # y_sym=sp.symbols('y_sym')
-def HG_mode_num(x, y, q, n, m, wavelength):
+def HG_mode_num(x, y, q, n, m, wavelength=1064e-9):
     """
     Calculate symbolically the amplitude of the HG_nm mode at position (x, y) with beam waist radius w_z.
     Parameters:
@@ -174,7 +174,7 @@ def HG_mode_num(x, y, q, n, m, wavelength):
     # Amplitude
     amplitude = (normalization_factor * hermite_x * hermite_y * np.exp(exponent) * wavefront * Gouy_term) / w
     
-    return {"U": amplitude, "w": w, "w0": w0, "zR": zR, "Rc": Rc, "Gouy": Gouy_phase_z, 'z': z}
+    return {"U": amplitude, "w": w, "w0": w0, "zR": zR, "Rc": Rc, "Gouy": Gouy_phase, 'z': z}
 
 
 
