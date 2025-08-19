@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-with open("gatorspy/_version.py", "r") as f:
+with open("pygator/_version.py", "r") as f:
     version = re.search(r'__version__\s*=\s*"(.+)"', f.read()).group(1)
 
 setup(
