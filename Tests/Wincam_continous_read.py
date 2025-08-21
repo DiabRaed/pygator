@@ -23,8 +23,8 @@ qx,qy=pygator.module.calculate_q(w0x=sol_x[0],w0y=sol_y[0],zx=sol_x[1],zy=sol_y[
 qx_cav,qy_cav=pygator.module.calculate_q(w0x=650e-6,w0y=647e-6,zx=0.19,zy=0.19)
 
 #A function to calculate the mismatch between 2 q-parameters
-print(fs.mismatch_calculator(q1=qx,q2=qx_cav))
-print(fs.mismatch_calculator(q1=qy,q2=qy_cav))
+print(pygator.module.mismatch_calculator(q1=qx,q2=qx_cav))
+print(pygator.module.mismatch_calculator(q1=qy,q2=qy_cav))
 # %%
 
 
