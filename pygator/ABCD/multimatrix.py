@@ -52,3 +52,47 @@ def multiply_abcd(*matrices, reverse=True, q_in=None):
         return result, q_out
 
     return result
+
+
+def multiply_matrices(*matrices, reverse=False, q_in=None):
+    """
+    Multiply an arbitrary number of square matrices.
+    Works for 2x2 (ABCD, Jones), 3x3, NxN, etc.
+    
+    Parameters
+    ----------
+    *matrices : list of ndarray
+        Matrices to multiply.
+    reverse : bool, optional
+        If True, multiply in reverse order (last applied first).
+    q_in : complex, optional
+        If provided, applies ABCD transformation (only valid for 2x2 matrices).
+    
+    Returns
+    -------
+    M_total : ndarray
+        Product of all matrices.
+    q_out : complex or None
+        If q_in is given and matrices are 2x2, return output q.
+    """
+    
+    if reverse:
+        matrices = matrices[::-1]
+    
+    # Ensure all matrices are numpy arrays (allowing complex)
+    mats = [np.array(M, dtype=complex) for M in matrices]
+    
+    # Infer dimension from first matrix
+    n = mats[0].shape[0]
+    M_total = np.eye(n, dtype=complex)
+    
+    for M in mats:
+        M_total = M @ M_total
+    
+    # If q_in is provided and we are in 2x2 land, apply ABCD transform
+    if q_in is not None and n == 2:
+        A, B, C, D = M_total[0,0], M_total[0,1], M_total[1,0], M_total[1,1]
+        q_out = (A * q_in + B) / (C * q_in + D)
+        return M_total, q_out
+    
+    return M_total
