@@ -8,6 +8,9 @@ pip install pyspin
 ```
 This pyspin is different than PySpin, which is a wrapper, not a package. 
 
+### Required Packages
+
+These scripts require PySpin, cv2, argparse.
 
 ### Live Camera
 You can look at the beam live using the live_camera.py script. 
