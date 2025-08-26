@@ -28,6 +28,7 @@ This can serve as a basic test of correct installation of PySpin.
 
 ### Basic Beam Profiler
 The fitting math can be found in fit_gaussian.py
+
 If installed with GitHub
 ```
 python path_to_pygator/pygator/beam_profile/live_camera.py --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0
