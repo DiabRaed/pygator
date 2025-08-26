@@ -28,8 +28,15 @@ This can serve as a basic test of correct installation of PySpin.
 
 ### Basic Beam Profiler
 The fitting math can be found in fit_gaussian.py
+If installed with GitHub
+```
+python path_to_pygator/pygator/beam_profile/live_camera.py --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0
+```
+If installed using pip
+```
+python -m pygator.beam_profile.live_camera --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0
+```
 
-python path_to_file/live_camera_fit.py --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0
 
 ROI: is the region of interest. It's a square shape around the highest peak with a size equal to the number of pixels. In this example it's a square of 350 pixel side length. This square will be plotted on the image.
 
