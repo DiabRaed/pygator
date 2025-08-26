@@ -17,8 +17,13 @@ You can look at the beam live using the live_camera.py script.
 
 The command line for this is 
 
+If installed with GitHub
 ```
-python path_to_file/live_camera.py --mode heatmap --exposure 10000 --gain 0
+python path_to_pygator/pygator/beam_profile/live_camera.py --mode heatmap --exposure 10000 --gain 0
+```
+If installed using pip
+```
+python path_to_pygator/pygator/beam_profile/live_camera.py --mode heatmap --exposure 10000 --gain 0
 ```
 
 There are 2 display modes: default="gray" and "heatmap"
