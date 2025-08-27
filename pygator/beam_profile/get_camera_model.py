@@ -1,15 +1,6 @@
-try:
-    import PySpin
-except ImportError:
-    PySpin = None
-    print("⚠️ PySpin not found. Camera functions will be unavailable.")
-    
+import PySpin
+
 def get_camera_model_name():
-    if PySpin is None:
-        raise ImportError(
-            "PySpin is required for camera functionality. "
-            "Install it from: https://www.teledynevisionsolutions.com/support/support-center/software-firmware-downloads/iis/spinnaker-sdk-download/spinnaker-sdk--download-files/"
-        )
     system = PySpin.System.GetInstance()
     cam_list = system.GetCameras()
 
