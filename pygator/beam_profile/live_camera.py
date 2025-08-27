@@ -1,8 +1,18 @@
-import PySpin
+try:
+    import PySpin
+except ImportError:
+    PySpin = None
+    print("⚠️ PySpin not found. Camera functions will be unavailable.")
 import cv2
 import numpy as np
 import argparse
+
 def set_camera_settings(cam, exposure, gain):
+    if PySpin is None:
+        raise ImportError(
+            "PySpin is required for camera functionality. "
+            "Install it from: https://www.teledynevisionsolutions.com/support/support-center/software-firmware-downloads/iis/spinnaker-sdk-download/spinnaker-sdk--download-files/"
+        )
     nodemap = cam.GetNodeMap()
 
     # Set pixel format to Mono8 if available and writable
@@ -45,6 +55,11 @@ def set_camera_settings(cam, exposure, gain):
         print(f"Gain set to {gain} dB")
 
 def acquire_images(mode='gray', exposure='auto', gain='auto'):
+    if PySpin is None:
+        raise ImportError(
+            "PySpin is required for camera functionality. "
+            "Install it from: https://www.teledynevisionsolutions.com/support/support-center/software-firmware-downloads/iis/spinnaker-sdk-download/spinnaker-sdk--download-files/"
+        )
     system = PySpin.System.GetInstance()
     cam_list = system.GetCameras()
 
@@ -120,6 +135,11 @@ def print_camera_nodes(cam):
         print(node.GetName())
 
 def print_float_nodes(cam):
+    if PySpin is None:
+        raise ImportError(
+            "PySpin is required for camera functionality. "
+            "Install it from: https://www.teledynevisionsolutions.com/support/support-center/software-firmware-downloads/iis/spinnaker-sdk-download/spinnaker-sdk--download-files/"
+        )
     nodemap = cam.GetNodeMap()
     print("=== Float Nodes with values ===")
     for node in nodemap.GetNodes():
@@ -132,6 +152,11 @@ def print_float_nodes(cam):
             pass
 
 def get_camera_and_start(exposure='auto', gain='auto'):
+    if PySpin is None:
+        raise ImportError(
+            "PySpin is required for camera functionality. "
+            "Install it from: https://www.teledynevisionsolutions.com/support/support-center/software-firmware-downloads/iis/spinnaker-sdk-download/spinnaker-sdk--download-files/"
+        )
     system = PySpin.System.GetInstance()
     cam_list = system.GetCameras()
 
@@ -153,7 +178,7 @@ def get_camera_and_start(exposure='auto', gain='auto'):
     return cam, cam_list, system
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(description="Live camera viewer using PySpin.")
     parser.add_argument('--mode', choices=['gray', 'heatmap'], default='gray', help='Display mode: gray or heatmap')
     parser.add_argument('--exposure', default='auto', help='Exposure time in µs or \"auto\"')
@@ -162,3 +187,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     acquire_images(mode=args.mode, exposure=args.exposure, gain=args.gain)
+if __name__ == '__main__':
+    main()
