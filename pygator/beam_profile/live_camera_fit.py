@@ -1,6 +1,6 @@
 import cv2
-from fit_gaussian import *
-from live_camera import get_camera_and_start
+from .fit_gaussian import *
+from .live_camera import get_camera_and_start
 import argparse
 
 def draw_fit_info(image, params, color=(255,)):
