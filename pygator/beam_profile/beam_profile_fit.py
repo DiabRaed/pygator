@@ -4,8 +4,8 @@ import argparse
 import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import simpledialog, messagebox
-from fit_gaussian import fit_gaussian_roi
-from live_camera import get_camera_and_start
+from .fit_gaussian import fit_gaussian_roi
+from .live_camera import get_camera_and_start
 from pygator.module import fit_beam_profile_ODR
 import csv
 
@@ -94,14 +94,17 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 # Convert to meters
                 sigma_x_m = sigma_x_px * pixel_size_m
                 sigma_y_m = sigma_y_px * pixel_size_m
+                angle_deg = np.degrees(params[6])  # theta is the 7th parameter in rotated fit
+
 
                 draw_text(img, f"sigma_x = {sigma_x_m*1e6:.2f} um", (10, 20))
                 draw_text(img, f"sigma_y = {sigma_y_m*1e6:.2f} um", (10, 40))
                 draw_text(img, f"z = {z_position*1000:.3f} mm", (10, 60))
+                draw_text(img, f"theta = {angle_deg:.3f} deg", (10, 80))
 
                 center = (x0, y0)
                 axes = (int(params[3] * 2), int(params[4] * 2))
-                cv2.ellipse(img, center, axes, 0, 0, 360, 255, 1)
+                cv2.ellipse(img, center, axes, angle_deg, 0, 360, 255, 1)
 
             except Exception as e:
                 print("Fit failed:", e)
