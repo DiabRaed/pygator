@@ -4,8 +4,8 @@ import argparse
 import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import simpledialog, messagebox
-from .fit_gaussian import fit_gaussian_roi
-from .live_camera import get_camera_and_start
+from fit_gaussian import fit_gaussian_roi
+from live_camera import get_camera_and_start
 from pygator.module import fit_beam_profile_ODR
 import csv
 
@@ -63,6 +63,7 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
     plt.figure("Beam Width Live Plot")
 
     try:
+        recording = False  # add this at the top of your loop
         while True:
             image_result = cam.GetNextImage()
             if image_result.IsIncomplete():
@@ -108,7 +109,14 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
             cv2.imshow('Beam Profile Fit', img)
             key = cv2.waitKey(1) & 0xFF
 
-            if key == ord('r'):  # Record into buffer
+            # inside your while loop
+            if key == ord('r'):  # Toggle recording on/off
+                recording = not recording
+                state = "ON" if recording else "OFF"
+                print(f"Recording {state}...")
+
+            # if recording is active, buffer every frame automatically
+            if recording:
                 wx_temp.append(sigma_x_m)
                 wy_temp.append(sigma_y_m)
                 print(f"Buffered sample: wx={sigma_x_m*1e6:.2f} um, wy={sigma_y_m*1e6:.2f} um")
@@ -128,26 +136,23 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                     wy_std_list.append(sigma_y_std)
                     z_list.append(z_position)
 
-                    # Clear buffer for next z
-                    wx_temp.clear()
-                    wy_temp.clear()
-
                     print(f"Recorded batch: z={z_position:.3f} m, "
-                          f"wx={sigma_x_mean*1e6:.2f}±{sigma_x_std*1e6:.2f} um, "
-                          f"wy={sigma_y_mean*1e6:.2f}±{sigma_y_std*1e6:.2f} um")
+                        f"wx={sigma_x_mean*1e6:.2f}±{sigma_x_std*1e6:.2f} um, "
+                        f"wy={sigma_y_mean*1e6:.2f}±{sigma_y_std*1e6:.2f} um")
 
                     # Live plot
                     plt.clf()
-                    plt.errorbar(z_list, np.array(wx_list)*1e6, yerr=np.array(wx_std_list)*1e6, fmt='o', label='wx',capsize=3)
-                    plt.errorbar(z_list, np.array(wy_list)*1e6, yerr=np.array(wy_std_list)*1e6, fmt='o', label='wy',capsize=3)
+                    plt.errorbar(z_list, np.array(wx_list)*1e6, yerr=np.array(wx_std_list)*1e6, fmt='o', label='wx', capsize=3)
+                    plt.errorbar(z_list, np.array(wy_list)*1e6, yerr=np.array(wy_std_list)*1e6, fmt='o', label='wy', capsize=3)
                     plt.xlabel("z position [m]")
                     plt.ylabel("Beam width [um]")
                     plt.legend()
                     plt.title("Live Beam Width vs. z")
                     plt.tight_layout()
-                    plt.pause(0.001)
-
-                    # Reset buffer
+                    plt.draw()
+                    plt.show(block=False)
+                    plt.gcf().canvas.flush_events()
+                    # Clear buffer for next z
                     wx_temp.clear()
                     wy_temp.clear()
 
