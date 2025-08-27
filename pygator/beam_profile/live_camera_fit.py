@@ -7,10 +7,10 @@ def draw_fit_info(image, params, color=(255,)):
     A, x0, y0, sigma_x, sigma_y, B = params
     lines = [
         f"A      = {A:.1f}",
-        f"x0     = {x0:.1f}",
-        f"y0     = {y0:.1f}",
-        f"sigma_x= {sigma_x:.1f}",
-        f"sigma_y= {sigma_y:.1f}",
+        f"x0     = {x0:.1f} pixels",
+        f"y0     = {y0:.1f} pixels",
+        f"sigma_x= {sigma_x:.1f} pixels",
+        f"sigma_y= {sigma_y:.1f} pixels",
         f"B      = {B:.1f}"
     ]
     font = cv2.FONT_HERSHEY_SIMPLEX
@@ -91,7 +91,7 @@ def run_live_fit(mode='gray', exposure='auto', gain='auto', roi_size=300, downsa
         cv2.destroyAllWindows()
 
 
-def main():
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', choices=['gray', 'heatmap'], default='gray', help='Display mode: gray or heatmap')
     parser.add_argument('--exposure', default='auto', help='Exposure in µs')
@@ -108,6 +108,3 @@ def main():
         roi_size=args.roi_size,
         downsample=args.downsample
 )
-
-if __name__ == '__main__':
-    main()
