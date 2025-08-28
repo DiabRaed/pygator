@@ -3,13 +3,9 @@ from scipy.optimize import curve_fit
 
 def gaussian_2d(coords, A, x0, y0, sigma_x, sigma_y, B):
     x, y = coords
-    xo = x - x0
-    yo = y - y0
-    cos_t, sin_t = np.cos(theta), np.sin(theta)
-    x_rot = cos_t * xo + sin_t * yo
-    y_rot = -sin_t * xo + cos_t * yo
-    g = A * np.exp(-((x_rot**2)/(2*sigma_x**2) + (y_rot**2)/(2*sigma_y**2))) + B
-    return g.ravel()
+    return (A * np.exp(
+        -(((x - x0) ** 2) / (2 * sigma_x ** 2) + ((y - y0) ** 2) / (2 * sigma_y ** 2))
+    ) + B).ravel()
 
 def fit_gaussian(image):
     y = np.arange(image.shape[0])
@@ -72,24 +68,16 @@ def fit_gaussian_roi(image, roi_size=100, downsample=1, meshgrid_cache={}):
     sigma_y_init = h / 4
     B_init = np.min(cropped)
 
-    # Initial guess
-    A_init = np.max(cropped) - np.min(cropped)
-    x0_init = w / 2
-    y0_init = h / 2
-    sigma_x_init = w / 4
-    sigma_y_init = h / 4
-    theta_init = 0.0
-    B_init = np.min(cropped)
-
-    initial_guess = (A_init, x0_init, y0_init, sigma_x_init, sigma_y_init, theta_init, B_init)
-
-    popt, _ = curve_fit(gaussian_2d_rotated, (xg, yg), cropped.ravel(), p0=initial_guess)
+    initial_guess = (A_init, x0_init, y0_init, sigma_x_init, sigma_y_init, B_init)
+   
+    # Step 5: Fit
+    popt, _ = curve_fit(gaussian_2d, (xg, yg), cropped.ravel(), p0=initial_guess)
 
     # Scale back to full image coords
-    A, x0, y0, sigma_x, sigma_y, theta, B = popt
+    A, x0, y0, sigma_x, sigma_y, B = popt
     x0 = x1 + x0 * downsample
     y0 = y1 + y0 * downsample
     sigma_x *= downsample
     sigma_y *= downsample
 
-    return (A, x0, y0, sigma_x, sigma_y, B, theta)
+    return (A, x0, y0, sigma_x, sigma_y, B)

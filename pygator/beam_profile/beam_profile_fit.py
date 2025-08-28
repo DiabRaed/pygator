@@ -88,23 +88,24 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 bottom_right = (min(img.shape[1], x0 + half), min(img.shape[0], y0 + half))
                 cv2.rectangle(img, top_left, bottom_right, (255,), 1)
 
-                sigma_x_px = params[3]
-                sigma_y_px = params[4]
+                w_x_px = 2*params[3] #to convert the standard deviation to beam size  through w=2*sigma
+                w_y_px = 2*params[4] #to convert the standard deviation to beam size  through w=2*sigma
 
                 # Convert to meters
-                sigma_x_m = sigma_x_px * pixel_size_m
-                sigma_y_m = sigma_y_px * pixel_size_m
-                angle_deg = np.degrees(params[6])  # theta is the 7th parameter in rotated fit
+                w_x_m = w_x_px * pixel_size_m
+                w_y_m = w_y_px * pixel_size_m
+                A=params[0]
+                # angle_deg = np.degrees(params[6])  # theta is the 7th parameter in rotated fit
 
-
-                draw_text(img, f"sigma_x = {sigma_x_m*1e6:.2f} um", (10, 20))
-                draw_text(img, f"sigma_y = {sigma_y_m*1e6:.2f} um", (10, 40))
-                draw_text(img, f"z = {z_position*1000:.3f} mm", (10, 60))
-                draw_text(img, f"theta = {angle_deg:.3f} deg", (10, 80))
+                draw_text(img, f"A = {A}", (10, 20))
+                draw_text(img, f"w_x = {w_x_m*1e6:.2f} um", (10, 40))
+                draw_text(img, f"w_y = {w_y_m*1e6:.2f} um", (10, 60))
+                draw_text(img, f"z = {z_position*1000:.3f} mm", (10, 80))
+                # draw_text(img, f"theta = {angle_deg:.3f} deg", (10, 80))
 
                 center = (x0, y0)
                 axes = (int(params[3] * 2), int(params[4] * 2))
-                cv2.ellipse(img, center, axes, angle_deg, 0, 360, 255, 1)
+                cv2.ellipse(img, center, axes,0, 0, 360, 255, 1)
 
             except Exception as e:
                 print("Fit failed:", e)
@@ -120,28 +121,28 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
 
             # if recording is active, buffer every frame automatically
             if recording:
-                wx_temp.append(sigma_x_m)
-                wy_temp.append(sigma_y_m)
-                print(f"Buffered sample: wx={sigma_x_m*1e6:.2f} um, wy={sigma_y_m*1e6:.2f} um")
+                wx_temp.append(w_x_m)
+                wy_temp.append(w_y_m)
+                print(f"Buffered sample: wx={w_x_m*1e6:.2f} um, wy={w_y_m*1e6:.2f} um")
 
             elif key == ord('R'):  # Finalize buffer
                 if len(wx_temp) > 0:
-                    sigma_x_mean = np.mean(wx_temp)
-                    sigma_y_mean = np.mean(wy_temp)
+                    w_x_mean = np.mean(wx_temp)
+                    w_y_mean = np.mean(wy_temp)
 
                     # Compute std dev and enforce minimum uncertainty
-                    sigma_x_std = max(np.std(wx_temp), 5e-6)
-                    sigma_y_std = max(np.std(wy_temp), 5e-6)
+                    w_x_std = max(np.std(wx_temp), 5e-6)
+                    w_y_std = max(np.std(wy_temp), 5e-6)
 
-                    wx_list.append(sigma_x_mean)
-                    wy_list.append(sigma_y_mean)
-                    wx_std_list.append(sigma_x_std)
-                    wy_std_list.append(sigma_y_std)
+                    wx_list.append(w_x_mean)
+                    wy_list.append(w_y_mean)
+                    wx_std_list.append(w_x_std)
+                    wy_std_list.append(w_y_std)
                     z_list.append(z_position)
 
                     print(f"Recorded batch: z={z_position:.3f} m, "
-                        f"wx={sigma_x_mean*1e6:.2f}±{sigma_x_std*1e6:.2f} um, "
-                        f"wy={sigma_y_mean*1e6:.2f}±{sigma_y_std*1e6:.2f} um")
+                        f"wx={w_x_mean*1e6:.2f}±{w_x_std*1e6:.2f} um, "
+                        f"wy={w_y_mean*1e6:.2f}±{w_y_std*1e6:.2f} um")
 
                     # Live plot
                     plt.clf()
@@ -267,5 +268,6 @@ if __name__ == '__main__':
         exposure=args.exposure,
         gain=args.gain,
         pixel_size_um=args.pixel_size,
-        output_file=args.output
+        output_file=args.output,
+        mode=args.mode
     )
