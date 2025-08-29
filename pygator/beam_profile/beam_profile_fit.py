@@ -186,8 +186,8 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
 
                 print("Fitting...")
                 z = np.array(z_list)
-                wx = np.array(wx_list)
-                wy = np.array(wy_list)
+                wx = np.array(wx_list/1.13)
+                wy = np.array(wy_list/1.13)
                 wx_std = np.array(wx_std_list)
                 wy_std = np.array(wy_std_list)
 
