@@ -93,8 +93,8 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 top_left = (max(0, x0 - half), max(0, y0 - half))
                 bottom_right = (min(img.shape[1], x0 + half), min(img.shape[0], y0 + half))
 
-                w_x_px = 2 * params[3]
-                w_y_px = 2 * params[4]
+                w_x_px = params[3]
+                w_y_px = params[4]
 
                 w_x_m = w_x_px * pixel_size_m
                 w_y_m = w_y_px * pixel_size_m
