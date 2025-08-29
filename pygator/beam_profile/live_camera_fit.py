@@ -3,14 +3,15 @@ from .fit_gaussian import *
 from .live_camera import get_camera_and_start
 import argparse
 
-def draw_fit_info(image, params, color=(255,)):
-    A, x0, y0, sigma_x, sigma_y, B = params
+def draw_fit_info(image, params, color=(255,),pixelsize=6.9):
+    A, x0, y0, w_x, w_y, B = params
+    # pixelsize_meters=pixelsize*1e-6
     lines = [
         f"A      = {A:.1f}",
         f"x0     = {x0:.1f} pixels",
         f"y0     = {y0:.1f} pixels",
-        f"sigma_x= {sigma_x:.1f} pixels",
-        f"sigma_y= {sigma_y:.1f} pixels",
+        f"w_x = {pixelsize*w_x:.1f} um",
+        f"w_y = {pixelsize*w_y:.1f} um",
         f"B      = {B:.1f}"
     ]
     font = cv2.FONT_HERSHEY_SIMPLEX
@@ -20,7 +21,7 @@ def draw_fit_info(image, params, color=(255,)):
     for i, line in enumerate(lines):
         cv2.putText(image, line, (x, y + i * 20), font, font_scale, color, thickness)
 
-def run_live_fit(mode='gray', exposure='auto', gain='auto', roi_size=300, downsample=2):
+def run_live_fit(mode='gray', exposure='auto', gain='auto', roi_size=300, downsample=2,pixelsize=6.9):
     cam, cam_list, system = get_camera_and_start(exposure, gain)
     if cam is None:
         return
@@ -61,7 +62,7 @@ def run_live_fit(mode='gray', exposure='auto', gain='auto', roi_size=300, downsa
 
                 # Choose text color based on mode
                 text_color = (255, 255, 255) if mode == 'heatmap' else (255,)
-                draw_fit_info(img, params, color=text_color)
+                draw_fit_info(img, params, color=text_color,pixelsize=6.9)
 
                 center = (int(params[1]), int(params[2]))
                 axes = (int(params[3] * 2), int(params[4] * 2))
@@ -98,6 +99,7 @@ if __name__ == '__main__':
     parser.add_argument('--gain', default='auto', help='Gain in dB')
     parser.add_argument('--roi-size', type=int, default=300, help='Size of the ROI in pixels (e.g. 100-300)')
     parser.add_argument('--downsample', type=int, default=2, help='Downsampling factor (e.g. 1, 2, 4)')
+    parser.add_argument('--pixel-size', type=float, default=6.9, help='Pixel size in um (default 6.9)')
 
 
     args = parser.parse_args()
@@ -106,5 +108,6 @@ if __name__ == '__main__':
         exposure=args.exposure,
         gain=args.gain,
         roi_size=args.roi_size,
+        pixelsize=args.pixel_size,
         downsample=args.downsample
 )

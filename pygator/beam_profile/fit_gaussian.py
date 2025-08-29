@@ -1,10 +1,10 @@
 import numpy as np
 from scipy.optimize import curve_fit
 
-def gaussian_2d(coords, A, x0, y0, sigma_x, sigma_y, B):
+def gaussian_2d(coords, A, x0, y0, w_x, w_y, B):
     x, y = coords
     return (A * np.exp(
-        -(((x - x0) ** 2) / (2 * sigma_x ** 2) + ((y - y0) ** 2) / (2 * sigma_y ** 2))
+        -(2*((x - x0) ** 2) / (w_x ** 2) + 2*((y - y0) ** 2) / ( w_y ** 2))
     ) + B).ravel()
 
 def fit_gaussian(image):
@@ -15,11 +15,11 @@ def fit_gaussian(image):
     A_init = np.max(image) - np.min(image)
     x0_init = image.shape[1] / 2
     y0_init = image.shape[0] / 2
-    sigma_x_init = image.shape[1] / 4
-    sigma_y_init = image.shape[0] / 4
+    w_x_init = image.shape[1] / 4
+    w_y_init = image.shape[0] / 4
     B_init = np.min(image)
 
-    initial_guess = (A_init, x0_init, y0_init, sigma_x_init, sigma_y_init, B_init)
+    initial_guess = (A_init, x0_init, y0_init, w_x_init, w_y_init, B_init)
 
     popt, _ = curve_fit(gaussian_2d, (x, y), image.ravel(), p0=initial_guess)
 
@@ -37,7 +37,7 @@ def fit_gaussian_roi(image, roi_size=100, downsample=1, meshgrid_cache={}):
     - meshgrid_cache: dict to store cached meshgrids to avoid recomputation
 
     Returns:
-    - params: (A, x0, y0, sigma_x, sigma_y, B) with coordinates scaled back to full-res
+    - params: (A, x0, y0, w_x, w_y, B) with coordinates scaled back to full-res
     """
     # Step 1: Find max pixel for ROI center
     max_y, max_x = np.unravel_index(np.argmax(image), image.shape)
@@ -64,20 +64,20 @@ def fit_gaussian_roi(image, roi_size=100, downsample=1, meshgrid_cache={}):
     A_init = np.max(cropped) - np.min(cropped)
     x0_init = w / 2
     y0_init = h / 2
-    sigma_x_init = w / 4
-    sigma_y_init = h / 4
+    w_x_init = w / 4
+    w_y_init = h / 4
     B_init = np.min(cropped)
 
-    initial_guess = (A_init, x0_init, y0_init, sigma_x_init, sigma_y_init, B_init)
+    initial_guess = (A_init, x0_init, y0_init, w_x_init, w_y_init, B_init)
    
     # Step 5: Fit
     popt, _ = curve_fit(gaussian_2d, (xg, yg), cropped.ravel(), p0=initial_guess)
 
     # Scale back to full image coords
-    A, x0, y0, sigma_x, sigma_y, B = popt
+    A, x0, y0, w_x, w_y, B = popt
     x0 = x1 + x0 * downsample
     y0 = y1 + y0 * downsample
-    sigma_x *= downsample
-    sigma_y *= downsample
+    w_x *= downsample
+    w_y *= downsample
 
-    return (A, x0, y0, sigma_x, sigma_y, B)
+    return (A, x0, y0, w_x, w_y, B)
