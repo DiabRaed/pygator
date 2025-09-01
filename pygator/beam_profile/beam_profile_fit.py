@@ -143,8 +143,8 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 if wx_temp:
                     w_x_mean = np.mean(wx_temp)
                     w_y_mean = np.mean(wy_temp)
-                    w_x_std = max(np.std(wx_temp), 5e-6)
-                    w_y_std = max(np.std(wy_temp), 5e-6)
+                    w_x_std = max(np.std(wx_temp), 1e-6)
+                    w_y_std = max(np.std(wy_temp), 1e-6)
                     wx_list.append(w_x_mean)
                     wy_list.append(w_y_mean)
                     wx_std_list.append(w_x_std)
