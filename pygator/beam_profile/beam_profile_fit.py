@@ -122,7 +122,8 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 draw_text(display_img, f"A = {A}", (10, 20), color=text_color)
                 draw_text(display_img, f"w_x = {w_x_m*1e6:.2f} um", (10, 40), color=text_color)
                 draw_text(display_img, f"w_y = {w_y_m*1e6:.2f} um", (10, 60), color=text_color)
-                draw_text(display_img, f"z = {z_position*1000:.3f} mm", (10, 80), color=text_color)
+                draw_text(display_img, f"B = {params[5]} ", (10, 80), color=text_color)
+                draw_text(display_img, f"z = {z_position*1000:.3f} mm", (10, 100), color=text_color)
 
             except Exception as e:
                 print("Warning: Fit failed for this frame (beam may be absent or too faint). Skipping frame.")
@@ -145,8 +146,8 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                     w_y_mean = np.mean(wy_temp)
                     w_x_std = max(np.std(wx_temp), 1e-6)
                     w_y_std = max(np.std(wy_temp), 1e-6)
-                    wx_list.append(w_x_mean)
-                    wy_list.append(w_y_mean)
+                    wx_list.append(w_x_mean/1.13)
+                    wy_list.append(w_y_mean/1.13)
                     wx_std_list.append(w_x_std)
                     wy_std_list.append(w_y_std)
                     z_list.append(z_position)
@@ -186,8 +187,8 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
 
                 print("Fitting...")
                 z = np.array(z_list)
-                wx = np.array(wx_list/1.13)
-                wy = np.array(wy_list/1.13)
+                wx = np.array(wx_list)
+                wy = np.array(wy_list)
                 wx_std = np.array(wx_std_list)
                 wy_std = np.array(wy_std_list)
 
@@ -195,7 +196,6 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                     z, wx, z, wy,
                     w0guess=300e-6,
                     z0guess=z_list[0],
-                    zRguess=0.05,
                     wx_std=wx_std,
                     wy_std=wy_std,
                     z_std=0.005,

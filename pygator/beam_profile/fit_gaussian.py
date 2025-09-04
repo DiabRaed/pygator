@@ -39,6 +39,10 @@ def fit_gaussian_roi(image, roi_size=100, downsample=1, meshgrid_cache={}):
     Returns:
     - params: (A, x0, y0, w_x, w_y, B) with coordinates scaled back to full-res
     """
+        # --- Check for saturation ---
+    if np.max(image) >= 255:  # use 4095 for Mono12, 65535 for Mono16
+        print("Warning: Image is saturated; Gaussian amplitude may be biased.")
+
     # Step 1: Find max pixel for ROI center
     max_y, max_x = np.unravel_index(np.argmax(image), image.shape)
     half = roi_size // 2
