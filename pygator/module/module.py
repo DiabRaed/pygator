@@ -770,8 +770,8 @@ def fit_beam_profile_ODR(
         print(f"Waist size (y): {sol_y[0]:.3e} ± {sol_y[3]:.2e} m")
         print(f"Waist location (y): {sol_y[1]:.3e} m ({sol_y[1]/0.0254:.2e} in) ± {sol_y[4]:.2e} m")
         print(f"Rayleigh range (y): {sol_y[2]:.3e} ± {sol_y[5]:.2e} m")
-        # print(f"Reduced χ² (x): {out_x.res_var:.3f}")
-        # print(f"Reduced χ² (y): {out_y.res_var:.3f}")
+        print(f"Reduced χ² (x): {out_x.res_var:.3f}")
+        print(f"Reduced χ² (y): {out_y.res_var:.3f}")
     return sol_x, sol_y
 
 
