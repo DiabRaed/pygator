@@ -1,5 +1,18 @@
 # How to Use
 
+# How to Use
+
+## Table of Contents
+- [Installing PySpin](#installing-pyspin)
+- [Running Scripts](#running-scripts)
+- [Beam Profile with Propagation](#beam-profile-with-propagation)
+  - [Command-Line Arguments](#command-line-arguments)
+- [Live Fitting (No Data Saving)](#live-fitting-no-data-saving)
+- [Live Camera](#live-camera)
+- [Command Reference](#quick-command-reference)
+
+
+
 ## Quick Command Reference
 
 | Script              | From Git                                                                 | From pip                                                                                   |
@@ -52,8 +65,10 @@ python -m pygator.beam_profile.beam_profile_fit --roi-size 400 --downsample 2 --
 ```
 
 **Controls:**
-- `r` → start/stop recording  
-- `f` → save recorded data to CSV (`--output`)  
+- `r` → start/stop recording frames
+- `R` → calculates average of beam radii and standard deviations at some point z of all recorded frames
+- `n` → move the camera command. Takes values in inches. Once entered, repeat `r` and `R` to record the next data point.
+- `f` → save recorded data to CSV (`--output`) and display the fit. The fit is done with pygator.module.fit_beam_profile_ODR
 - `q` → quit  
 
 After saving the `.csv` file, you can fit the beam profile using:
