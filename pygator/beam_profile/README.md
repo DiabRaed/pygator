@@ -5,6 +5,8 @@ How to use
 To install PySpin wrapper, follow the instruction in 
 
 [README_FLIR](./README_FLIR_installation.md)
+
+
 Do NOT install pyspin with 
 
 ```
@@ -33,12 +35,12 @@ python -m pygator.beam_profile.script --keyword_arguments keyword_values
 
 Git:
 ```
-python beam_profile.py --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap
+python beam_profile_fit.py --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap
 ```
 
 Pip:
 ```
-python -m pygator.beam_profile.beam_profile --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap
+python -m pygator.beam_profile.beam_profile_fit --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap
 ```
 
 Performs live 2D Gaussian fitting of the beam and displays the result with overlays. Unlike live_camera_fit.py, this script allows recording beam waist data (wx, wy) as a function of propagation distance z.
@@ -47,9 +49,16 @@ Press f to save the recorded data to the specified CSV file (--output).
 Press q to quit.
 
 
-ROI: is the region of interest. It's a square shape around the highest peak with a size equal to the number of pixels. In this example it's a square of 350 pixel side length. 
+Once you are done with the scan and saved the .csv file, you can use pygator.module.fit_beam_profile_ODR or pygator.module.fit_beam_profile_curve_fit to perform the fitting and return the q-parameters. See example beam_profile_FLIR in Tests found here 
 
---downsample:
+[beam_profile_FLIR](../../Tests/beam_profile_FLIR.py)
+
+
+
+
+--roi-size: is the region of interest. It's a square shape around the highest peak with a size equal to the number of pixels. In this example it's a square of 400 pixel side length. 
+
+--downsample: default to 2
 What Happens with Downsampling in the Code
 
 When we downsample like this:
@@ -72,7 +81,8 @@ If downsample=4, it uses 4×4 blocks, and so on.
 
 This isn’t a naive pixel-wise average but a resampling algorithm that gives similar results with more accurate interpolation.
  
---pixel-size is the camera's pixel size. 
+--pixel-size is the camera's pixel size in microns. Default to 6.9 µm
+
 --output is the name of the CSV file to be saved, if chosen. This is saved in the current working directory. 
 
 --mode either "heatmap" or "gray" (default). This is just a display preference and does not affect the fitting at all.
@@ -86,10 +96,6 @@ If the beam cannot be fit (too faint / absent), the frame is skipped with a warn
 If the camera disconnects unexpectedly, any recorded data up to that point is saved automatically to a backup CSV.
 
 In case of camera disconnections, the script automatically saves the progress in outputfilename_backed_up.csv
-
-Once you are done with the scan and saved the .csv file, you can use pygator.module.fit_beam_profile_ODR or pygator.module.fit_beam_profile_curve_fit to perform the fitting and return the q-parameters. See example beam_profile_FLIR in Tests found here 
-
-[beam_profile_FLIR](../../Tests/beam_profile_FLIR.py)
 
 
 
