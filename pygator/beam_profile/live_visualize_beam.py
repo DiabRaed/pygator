@@ -3,8 +3,8 @@ import numpy as np
 import argparse
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from fit_gaussian import fit_gaussian_roi, gaussian_2d
-from live_camera import get_camera_and_start
+from .fit_gaussian import fit_gaussian_roi, gaussian_2d
+from .live_camera import get_camera_and_start
 
 def draw_text(image, text, pos=(10, 20), color=(255,)):
     font = cv2.FONT_HERSHEY_SIMPLEX

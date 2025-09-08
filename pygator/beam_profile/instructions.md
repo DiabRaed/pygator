@@ -1,7 +1,31 @@
 How to use
 
+### Running Scripts
+It's most convenient to run all scripts using the command prompt.
+Depending on installation method, the command line changes. 
+
+If you install pygator through Git, go to the folder of the script and run 
+
+```
+python script.py --keyword_arguments keyword_values
+```
+
+If you install pygator with pip, the command line is 
+
+```
+python -m pygator.beam_profile.script --keyword_arguments keyword_values
+```
+
 ### Beam Profile with Propagation
-python beam_profile_fit.py --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0 --output beam_data.csv
+
+Git:
+```
+python beam_profile.py --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap
+```
+
+```
+python -m pygator.beam_profile.beam_profile --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap
+```
 
 Performs live 2D Gaussian fitting of the beam and displays the result with overlays. Unlike live_camera_fit.py, this script allows recording beam waist data (wx, wy) as a function of propagation distance z.
 Press r to start/stop recording data.
@@ -35,8 +59,9 @@ If downsample=4, it uses 4×4 blocks, and so on.
 This isn’t a naive pixel-wise average but a resampling algorithm that gives similar results with more accurate interpolation.
  
 --pixel-size is the camera's pixel size. 
---output is the name of the CSV file to be saved, if chosen
+--output is the name of the CSV file to be saved, if chosen. This is saved in the current working directory. 
 
+--mode either "heatmap" or "gray" (default). This is just a display preference and does not affect the fitting at all.
 
 Saved CSV includes:
 z [m]: propagation distance (from stage or user input)
@@ -46,11 +71,41 @@ wx_std [m], wy_std [m]: standard deviations over recent frames (stability estima
 If the beam cannot be fit (too faint / absent), the frame is skipped with a warning.
 If the camera disconnects unexpectedly, any recorded data up to that point is saved automatically to a backup CSV.
 
+In case of camera disconnections, the script automatically saves the progress in outputfilename_backed_up.csv
+
+Once you are done with the scan and saved the .csv file, you can use pygator.module.fit_beam_profile_ODR or pygator.module.fit_beam_profile_curve_fit to perform the fitting and return the q-parameters. See example beam_profile_FLIR in Tests found here 
+
+[beam_profile_FLIR](../../Tests/beam_profile_FLIR.py)
+
 
 
 ### Live fitting without saving data
 
+
+Git:
+```
 python live_camera_fit.py --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0
+```
+pip:
+```
+python pygator.beam_profile.live_camera_fit --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0
+```
+
+This is a simple 2D fitting of the beam at single spot. It does not save or record any data. 
 
 
-Fitting a 2D gaussian to the beam live. This doesn't save the data. The parameters are in units of pixel numbers. 
+### Live Camera
+
+
+Git:
+```
+python live_camera_fit --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0
+```
+pip:
+```
+python pygator.beam_profile.live_camera --mode heatmap --exposure 10000 --gain 0
+```
+
+Simple display of the beam in real time. This is basically what spinnaker software 
+
+
