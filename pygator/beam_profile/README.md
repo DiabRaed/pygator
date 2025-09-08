@@ -13,16 +13,6 @@
 
 
 
-## Quick Command Reference
-
-| Script              | From Git                                                                 | From pip                                                                                   |
-|---------------------|---------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
-| **Beam Profile Fit** | `python beam_profile_fit.py --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap` | `python -m pygator.beam_profile.beam_profile_fit --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap` |
-| **Live Camera Fit**  | `python live_camera_fit.py --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0` | `python -m pygator.beam_profile.live_camera_fit --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0` |
-| **Live Camera**      | `python live_camera.py --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0` | `python -m pygator.beam_profile.live_camera --mode heatmap --exposure 10000 --gain 0` |
-
----
-
 ## Installing PySpin
 To install the PySpin wrapper, follow the instructions in  
 [README_FLIR](./README_FLIR_installation.md).
@@ -67,7 +57,7 @@ python -m pygator.beam_profile.beam_profile_fit --roi-size 400 --downsample 2 --
 **Controls:**
 - `r` → start/stop recording frames
 - `R` → calculates average of beam radii and standard deviations at some point z of all recorded frames
-- `n` → move the camera command. Takes values in inches. Once entered, repeat `r` and `R` to record the next data point.
+- `n` → command to record the distance the camera has moved from the previous point. Takes values in inches. Once entered, repeat `r` and `R` to record the next data point.
 - `f` → save recorded data to CSV (`--output`) and display the fit. The fit is done with pygator.module.fit_beam_profile_ODR
 - `q` → quit  
 
@@ -136,3 +126,15 @@ python live_camera.py --mode heatmap --roi-size 350 --downsample 2 --exposure 10
 ```bash
 python -m pygator.beam_profile.live_camera --mode heatmap --exposure 10000 --gain 0
 ```
+
+
+
+## Quick Command Reference
+
+| Script              | From Git                                                                 | From pip                                                                                   |
+|---------------------|---------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| **Beam Profile Fit** | `python beam_profile_fit.py --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap` | `python -m pygator.beam_profile.beam_profile_fit --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap` |
+| **Live Camera Fit**  | `python live_camera_fit.py --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0` | `python -m pygator.beam_profile.live_camera_fit --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0` |
+| **Live Camera**      | `python live_camera.py --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0` | `python -m pygator.beam_profile.live_camera --mode heatmap --exposure 10000 --gain 0` |
+
+---
