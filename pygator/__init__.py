@@ -8,3 +8,4 @@ from . import module
 from . import spectran
 from . import ABCD
 from . import beam_profile
+from . import library

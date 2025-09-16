@@ -61,10 +61,10 @@ python -m pygator.beam_profile.beam_profile_fit --roi-size 400 --downsample 2 --
 - `f` → save recorded data to CSV (`--output`) and display the fit. The fit is done with pygator.module.fit_beam_profile_ODR
 - `q` → quit  
 
-After saving the `.csv` file, you can fit the beam profile using:
+After saving the `.csv` file, you can fit the beam profile manually using:
 - `pygator.module.fit_beam_profile_ODR`
 - `pygator.module.fit_beam_profile_curve_fit`
-
+This is the exact fit shown after pressing `f`.  
 See example in  
 [beam_profile_FLIR](../../Tests/beam_profile_FLIR.py).
 

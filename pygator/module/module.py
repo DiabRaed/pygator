@@ -650,10 +650,42 @@ def fit_beam_profile_ODR(
     plot_error='measured'              # 'measured' | 'fit'
 ):
     """
-    Fit Gaussian beam radii with ODR, but constrain zR = pi * w0^2 / wavelength.
-    Free parameters are (w0, z0) only.
-    """
+        Fit Gaussian beam radii with ODR, constraining zR = pi * w0^2 / wavelength.
+        Free parameters are (w0, z0) only.
 
+        Parameters
+        ----------
+        zx_data, zy_data : array
+            Longitudinal positions (m) for X and Y scans.
+        wx_data, wy_data : array
+            Measured beam radii (m) at those positions.
+        w0guess, z0guess : float
+            Initial guesses for beam waist size (m) and position (m).
+        wx_std, wy_std : float or array
+            Measurement uncertainty in beam radii (m) for X and Y scans.
+        z_std : float or array
+            Measurement uncertainty in z positions (m).
+        weight_mode : str
+            Choice of weighting scheme for vertical error bars:
+            - 'measured': use measured uncertainties only.
+            - 'measured+relative': add fractional error ~ frac_err * w(z).
+            - 'measured+distance': add error increasing with |z-z0|/zR.
+        frac_err : float
+            Fractional error used for relative/distance weighting.
+        sigma_floor : float
+            Minimum allowed error bar (m).
+        iters : int
+            Number of reweighting passes.
+
+        Notes
+        -----
+        - `sx_x`, `sx_y`: uncertainties in z positions for X and Y data.
+        - `sy_x_meas`, `sy_y_meas`: measured uncertainties in beam radii.
+        - `sy_x_fit`, `sy_y_fit`: effective uncertainties after applying weighting
+        scheme; these are passed to ODR as vertical error bars.
+        - Horizontal uncertainties (`sx_*`) are typically small compared to
+        vertical (`sy_*`), but ODR can account for both.
+    """
     def as_array(val, like):
         if np.ndim(val) == 0:
             return np.full_like(like, val, dtype=float)
@@ -861,12 +893,11 @@ def read_files(file_names,folder_path,zero_idx=1,i_range=None):
     return wx, wy, wx_std, wy_std, z*1e-2
 
 
-def calculate_q(w0x,w0y,zx,zy):
+def calculate_q(w0x,w0y,zx,zy,wavelength=1064e-9):
     """This function calculates the q parameter of the measured beam
     based on the fitted parameters"""
     if not w0x or not w0y or not zx or not zy:
         raise ValueError("Data is invalid")
-    wavelength=1064e-9
     zrx=np.pi*w0x**2/wavelength
     zry=np.pi*w0y**2/wavelength
 
