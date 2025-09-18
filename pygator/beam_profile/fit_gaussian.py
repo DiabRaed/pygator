@@ -1,11 +1,14 @@
 import numpy as np
 from scipy.optimize import curve_fit
 
-def gaussian_2d(coords, A, x0, y0, w_x, w_y, B):
+def gaussian_2d_rotated(coords, A, x0, y0, w_x, w_y, B, theta=0):
     x, y = coords
-    return (A * np.exp(
-        -(2*((x - x0) ** 2) / (w_x ** 2) + 2*((y - y0) ** 2) / ( w_y ** 2))
-    ) + B).ravel()
+    # Rotate coordinates
+    xp = (x - x0) * np.cos(theta) - (y - y0) * np.sin(theta)
+    yp = (x - x0) * np.sin(theta) + (y - y0) * np.cos(theta)
+    # Return Gaussian values flattened
+    return (A * np.exp(-2 * ((xp / w_x)**2 + (yp / w_y)**2)) + B).ravel()
+
 
 def fit_gaussian(image):
     y = np.arange(image.shape[0])
@@ -18,15 +21,16 @@ def fit_gaussian(image):
     w_x_init = image.shape[1] / 4
     w_y_init = image.shape[0] / 4
     B_init = np.min(image)
+    theta_init=0
 
-    initial_guess = (A_init, x0_init, y0_init, w_x_init, w_y_init, B_init)
+    initial_guess = (A_init, x0_init, y0_init, w_x_init, w_y_init, B_init,theta_init)
 
     popt, _ = curve_fit(gaussian_2d, (x, y), image.ravel(), p0=initial_guess)
 
     return popt
 
 
-def fit_gaussian_roi(image, roi_size=100, downsample=1, meshgrid_cache={},warn_once=[False]):
+def fit_gaussian_roi(image, roi_size=100, downsample=1, meshgrid_cache={},warn_once=[False],theta=0):
     """
     Fit a 2D Gaussian to a small ROI around the brightest pixel.
 
@@ -79,6 +83,7 @@ def fit_gaussian_roi(image, roi_size=100, downsample=1, meshgrid_cache={},warn_o
     w_x_init = w / 4
     w_y_init = h / 4
     B_init = np.min(cropped)
+    # theta_init=0
 
     initial_guess = (A_init, x0_init, y0_init, w_x_init, w_y_init, B_init)
    
@@ -86,7 +91,7 @@ def fit_gaussian_roi(image, roi_size=100, downsample=1, meshgrid_cache={},warn_o
     popt, _ = curve_fit(gaussian_2d, (xg, yg), cropped.ravel(), p0=initial_guess)
 
     # Scale back to full image coords
-    A, x0, y0, w_x, w_y, B = popt
+    A, x0, y0, w_x, w_y, B ,theta= popt
     x0 = x1 + x0 * downsample
     y0 = y1 + y0 * downsample
     w_x *= downsample

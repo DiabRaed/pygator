@@ -29,7 +29,7 @@ def ask_to_save():
     return response
 
 def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
-                     pixel_size_um=6.9, output_file="beam_profile.csv", mode="gray"):
+                     pixel_size_um=6.9, output_file="beam_profile.csv", mode="gray",theta_val=0):
 
     pixel_size_m = pixel_size_um * 1e-6
     cam, cam_list, system = get_camera_and_start(exposure, gain)
@@ -87,7 +87,7 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
             image_result.Release()
 
             try:
-                params = fit_gaussian_roi(img, roi_size=roi_size, downsample=downsample, meshgrid_cache=meshgrid_cache)
+                params = fit_gaussian_roi(img, roi_size=roi_size, downsample=downsample, meshgrid_cache=meshgrid_cache,theta=theta)
                 x0, y0 = int(params[1]), int(params[2])
                 half = roi_size // 2
                 top_left = (max(0, x0 - half), max(0, y0 - half))
@@ -99,6 +99,7 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 w_x_m = w_x_px * pixel_size_m
                 w_y_m = w_y_px * pixel_size_m
                 A = params[0]
+                theta = theta_val * np.pi/180   # rotation angle in radians
 
                 # Choose mode-based display
                 if mode == 'heatmap':
@@ -117,6 +118,35 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 center = (x0, y0)
                 axes = (int(params[3] * 2), int(params[4] * 2))
                 cv2.ellipse(display_img, center, axes, 0, 0, 360, ellipse_color, 1)
+
+                # Crosshair parameters
+                # Use ROI size for line lengths
+                Lx = (bottom_right[0] - top_left[0]) // 2  # half width
+                Ly = (bottom_right[1] - top_left[1]) // 2  # half height
+
+                # Function to rotate points
+                def rotate_point(x, y, theta, x0=0, y0=0):
+                    x_rot = (x) * np.cos(theta) + (y) * np.sin(theta) + x0
+                    y_rot = -(x) * np.sin(theta) + (y) * np.cos(theta) + y0
+                    return int(x_rot), int(y_rot)
+
+                # Horizontal line (dashed approximation)
+                num_dashes = 10
+                for i in range(num_dashes):
+                    start_frac = i / num_dashes
+                    end_frac = (i + 0.5) / num_dashes
+                    x_start = -Lx + 2 * Lx * start_frac
+                    x_end   = -Lx + 2 * Lx * end_frac
+                    y_start, y_end = 0, 0
+                    pt1 = rotate_point(x_start, y_start, theta, x0, y0)
+                    pt2 = rotate_point(x_end, y_end, theta, x0, y0)
+                    cv2.line(display_img, pt1, pt2, (255, 255, 255), 1)
+
+                # Vertical line (solid)
+                pt1 = rotate_point(0, -Ly, theta, x0, y0)
+                pt2 = rotate_point(0, Ly, theta, x0, y0)
+                cv2.line(display_img, pt1, pt2, (255, 255, 255), 1)
+
 
                 # Draw text
                 draw_text(display_img, f"A = {A}", (10, 20), color=text_color)
@@ -254,8 +284,8 @@ if __name__ == '__main__':
     parser.add_argument('--gain', default='auto', help='Camera gain (dB)')
     parser.add_argument('--pixel-size', type=float, default=6.9, help='Pixel size in um (default 6.9)')
     parser.add_argument('--output', default="beam_profile.csv", help='Output CSV filename')
-    parser.add_argument('--mode', choices=['gray', 'heatmap'], default='gray',
-                        help='Display mode for live camera (default: gray)')
+    parser.add_argument('--theta_val', default=0, help='angle to fit in deg')
+    parser.add_argument('--mode', choices=['gray', 'heatmap'], default='gray', help='Display mode for live camera (default: gray)')
     args = parser.parse_args()
 
     beam_profile_fit(
@@ -265,5 +295,6 @@ if __name__ == '__main__':
         gain=args.gain,
         pixel_size_um=args.pixel_size,
         output_file=args.output,
+        theta_val=args.theta_val,
         mode=args.mode
     )
