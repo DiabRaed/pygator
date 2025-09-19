@@ -28,6 +28,19 @@ def ask_to_save():
     root.destroy()
     return response
 
+def draw_grid(img, step=50, color=(100, 100, 100), thickness=1):
+    """Draws a grid over the entire image."""
+    h, w = img.shape[:2]
+
+    # Vertical lines
+    for x in range(0, w, step):
+        cv2.line(img, (x, 0), (x, h), color, thickness)
+
+    # Horizontal lines
+    for y in range(0, h, step):
+        cv2.line(img, (0, y), (w, y), color, thickness)
+
+
 def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                      pixel_size_um=6.9, output_file="beam_profile.csv", mode="gray",theta_val=0):
 
@@ -35,6 +48,9 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
     cam, cam_list, system = get_camera_and_start(exposure, gain)
     if cam is None:
         return
+
+    theta_val = float(theta_val)  # ensure numeric
+    theta_step = 1.0  # degrees per key press
 
     z_list, wx_list, wy_list, wx_std_list, wy_std_list = [], [], [], [], []
     wx_temp, wy_temp = [], []
@@ -87,7 +103,7 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
             image_result.Release()
 
             try:
-                params = fit_gaussian_roi(img, roi_size=roi_size, downsample=downsample, meshgrid_cache=meshgrid_cache,theta=theta)
+                params = fit_gaussian_roi(img, roi_size=roi_size, downsample=downsample, meshgrid_cache=meshgrid_cache,theta_user=theta_val)
                 x0, y0 = int(params[1]), int(params[2])
                 half = roi_size // 2
                 top_left = (max(0, x0 - half), max(0, y0 - half))
@@ -99,7 +115,10 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 w_x_m = w_x_px * pixel_size_m
                 w_y_m = w_y_px * pixel_size_m
                 A = params[0]
-                theta = theta_val * np.pi/180   # rotation angle in radians
+
+                # Use user theta for drawing
+                theta = params[-1]
+                theta_fit=params[-2] 
 
                 # Choose mode-based display
                 if mode == 'heatmap':
@@ -112,7 +131,9 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                     rect_color = (200,)       # Light gray rectangle
                     text_color = (255,)
                     ellipse_color = (255,)
-
+                
+                #Adding a grid
+                draw_grid(display_img, step=100, color=(100, 100, 100))  # gray grid
                 # Draw ROI rectangle and ellipse
                 cv2.rectangle(display_img, top_left, bottom_right, rect_color, 1)
                 center = (x0, y0)
@@ -140,12 +161,12 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                     y_start, y_end = 0, 0
                     pt1 = rotate_point(x_start, y_start, theta, x0, y0)
                     pt2 = rotate_point(x_end, y_end, theta, x0, y0)
-                    cv2.line(display_img, pt1, pt2, (255, 255, 255), 1)
+                    cv2.line(display_img, pt1, pt2, (0, 0, 255), 1)
 
                 # Vertical line (solid)
                 pt1 = rotate_point(0, -Ly, theta, x0, y0)
                 pt2 = rotate_point(0, Ly, theta, x0, y0)
-                cv2.line(display_img, pt1, pt2, (255, 255, 255), 1)
+                cv2.line(display_img, pt1, pt2, (0, 0, 255), 1)
 
 
                 # Draw text
@@ -154,6 +175,8 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 draw_text(display_img, f"w_y = {w_y_m*1e6:.2f} um", (10, 60), color=text_color)
                 draw_text(display_img, f"B = {params[5]} ", (10, 80), color=text_color)
                 draw_text(display_img, f"z = {z_position*1000:.3f} mm", (10, 100), color=text_color)
+                draw_text(display_img, f"theta_fit = {theta_fit*180/np.pi:.2f} deg", (10, 120), color=text_color)
+                draw_text(display_img, f"theta_user = {theta*180/np.pi:.2f} deg", (10, 140), color=text_color)
 
             except Exception as e:
                 print("Warning: Fit failed for this frame (beam may be absent or too faint). Skipping frame.")
@@ -209,6 +232,14 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                     print(f"Moved by {dz_inch:.3f} in = {dz_m:.4f} m, new z = {z_position:.4f} m")
                 except Exception:
                     print("Invalid distance.")
+
+            elif key == ord('['):
+                theta_val -= theta_step
+                print(f"Theta adjusted: {theta_val:.2f} deg")
+
+            elif key == ord(']'):
+                theta_val += theta_step
+                print(f"Theta adjusted: {theta_val:.2f} deg")
 
             elif key == ord('f'):
                 if len(z_list) < 3:
@@ -284,7 +315,7 @@ if __name__ == '__main__':
     parser.add_argument('--gain', default='auto', help='Camera gain (dB)')
     parser.add_argument('--pixel-size', type=float, default=6.9, help='Pixel size in um (default 6.9)')
     parser.add_argument('--output', default="beam_profile.csv", help='Output CSV filename')
-    parser.add_argument('--theta_val', default=0, help='angle to fit in deg')
+    parser.add_argument('--theta_val', type=float, default=0, help='angle to fit in deg')
     parser.add_argument('--mode', choices=['gray', 'heatmap'], default='gray', help='Display mode for live camera (default: gray)')
     args = parser.parse_args()
 
