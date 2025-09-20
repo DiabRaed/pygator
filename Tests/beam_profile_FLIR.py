@@ -4,16 +4,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import optimize
 import pandas as pd
-# %matplotlib inline
 import scipy.optimize
-# from base import *
 from uncertainties import ufloat
 from uncertainties import unumpy
 import pandas as pd
 import matplotlib.pyplot as plt
+from pathlib import Path
+import subprocess
+git_repo_path = subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).strip().decode('utf-8')
 
-
-pzts_flir_path=(Path(git_repo_path)/"spinview"/"data"/"pzts6.csv")
+pzts_flir_path=(Path(git_repo_path)/"Tests"/"pzts6.csv")
 data=pd.read_csv(pzts_flir_path,skiprows=1,names=['z','wx','wy','std_wx','std_wy','A','B'])
 data = data.apply(pd.to_numeric, errors='coerce')
 
@@ -38,3 +38,5 @@ print(qx,qy)
 #print(k_mag)
 mismatch = abs((qx - qy) / (qx - qy.conjugate()))**2
 print('Mismatch between qx and qy (%):', mismatch*100)
+
+# %%

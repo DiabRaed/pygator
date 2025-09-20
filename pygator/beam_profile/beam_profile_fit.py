@@ -4,7 +4,7 @@ import argparse
 import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import simpledialog, messagebox
-from .fit_gaussian import fit_gaussian_roi
+from .fit_gaussian import fit_gaussian_roi, gaussian_2d
 from .live_camera import get_camera_and_start
 from pygator.module import fit_beam_profile_ODR
 import csv
@@ -71,6 +71,10 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
 
     try:
         recording = False
+        plt.ion()
+        residual_fig,residual_ax=plt.subplots()
+        residual_im=None
+
         while True:
                 # Try to grab a frame
             try:
@@ -190,14 +194,40 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
 
 
                 # Draw text
-                draw_text(display_img, f"A = {A}", (10, 20), color=text_color)
+                draw_text(display_img, f"A = {A:.2f} Grayscale Unit", (10, 20), color=text_color)
                 draw_text(display_img, f"w_x = {w_x_m*1e6:.2f} um", (10, 40), color=text_color)
                 draw_text(display_img, f"w_y = {w_y_m*1e6:.2f} um", (10, 60), color=text_color)
-                draw_text(display_img, f"B = {params[5]} ", (10, 80), color=text_color)
-                draw_text(display_img, f"z = {z_position*1000:.3f} mm", (10, 100), color=text_color)
-                draw_text(display_img, f"theta_fit (Diagnostic only) = {(theta_fit*180/np.pi)%360:.2f} deg", (10, 120), color=text_color)
-                draw_text(display_img, f"theta_user = {theta*180/np.pi:.2f} deg", (10, 140), color=text_color)
+                draw_text(display_img, f"B = {params[5]:.2f} Grayscale Unit", (10, 80), color=text_color)
+                draw_text(display_img, f"z = {z_position*1000:.2f} mm", (10, 100), color=text_color)
+                draw_text(display_img, f"Fit theta (Diagnostic only) = {(theta_fit*180/np.pi)%360:.2f} deg", (10, 120), color=text_color)
+                draw_text(display_img, f"User theta = {theta*180/np.pi:.2f} deg", (10, 140), color=text_color)
 
+
+
+                # Let's open a 2nd window to plot the residual 
+                roi_data = img[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
+                X_fit = np.arange(roi.shape[1])
+                Y_fit = np.arange(roi.shape[0])
+                X, Y = np.meshgrid(X_fit, Y_fit)
+                gaussian_fit_ROI=gaussian_2d((X,Y),params[0],params[1],params[2],params[3],params[4],params[5],theta)
+                residual=roi_data-gaussian_fit
+
+                # cv2.imshow('residual',residual)
+                # I used matplotlib rather than openCV because we can get the colorbar here
+                if residual_im is None:
+                    # First frame: create the image object and colorbar
+                    residual_im = residual_ax.imshow(residual, cmap='bwr', origin='upper')
+                    cbar = residual_fig.colorbar(residual_im, ax=residual_ax)
+                    cbar.set_label('Residual (fit - data)')
+                    residual_ax.set_title("Residual")
+                else:
+                    # just update the existing image
+                    residual_im.set_data(residual)
+                    residual_im.set_clim(residual.min(), residual.max())  # updating the colorbar scale
+
+                residual_fig.canvas.draw()
+                residual_fig.canvas.flush_events()
+                
             except Exception as e:
                 print("Warning: Fit failed for this frame (beam may be absent or too faint). Skipping frame.")
                 continue  # skip to next frame, no display or processing for this frame
