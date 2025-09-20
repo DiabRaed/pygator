@@ -1,7 +1,5 @@
 # How to Use
 
-# How to Use
-
 ## Table of Contents
 - [Installing PySpin](#installing-pyspin)
 - [Running Scripts](#running-scripts)
@@ -46,12 +44,12 @@ Unlike `live_camera_fit.py`, this script can record beam waist data (`wx`, `wy`)
 
 **From Git:**
 ```bash
-python beam_profile_fit.py --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap
+python beam_profile_fit.py --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap --theta_val 0 
 ```
 
 **From pip:**
 ```bash
-python -m pygator.beam_profile.beam_profile_fit --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap
+python -m pygator.beam_profile.beam_profile_fit --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap --theta_val 0 
 ```
 
 **Controls:**
@@ -94,6 +92,7 @@ See example in
 - **`--pixel-size`**: camera pixel size in µm (default: 6.9).  
 - **`--output`**: name of CSV file to save (in current directory).  
 - **`--mode`**: `"heatmap"` or `"gray"` (default: `"gray"`).  
+- **`--theta_val`**: True coordinates rotation angle in degrees (default: 0 degrees).  
 
 **Saved CSV includes:**
 - `z [m]` → propagation distance  
