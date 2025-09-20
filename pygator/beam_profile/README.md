@@ -71,7 +71,7 @@ See example in
 [beam_profile_FLIR](../../Tests/beam_profile_FLIR.py).
 
 **Coordinates:**
-The script shows 2 sets of coordinates, a fixed coordinate system in red and a fitted coordinate system in yellow. The fitted coordinate system (as well as theta_fit printed on the screen) are only for diagnostic puproses and are not the coordinates to which the Gaussian is fit. The red coordinates are the true coordinates to fit the Gaussian. You can control the true coordinates using `[` and `]` to decreases and decrease the rotation angle by 1 degree. In both coordinate systems, the dashed line is the x-axis and the solid line is the y-axis. See picture [coordinates](./Pictures/coordinates.png) to see the coordinates.
+- The script shows 2 sets of coordinates, a fixed coordinate system in red and a fitted coordinate system in yellow. The fitted coordinate system (as well as theta_fit printed on the screen) are only for diagnostic puproses and are not the coordinates to which the Gaussian is fitted. The red coordinates are the true coordinates to fit the Gaussian. You can control the true coordinates using `[` and `]` to decreases and decrease the rotation angle by 1 degree. In both coordinate systems, the dashed line is the x-axis and the solid line is the y-axis. See picture [coordinates](./Pictures/coordinates.png) to see the coordinates.
 
 
 ---
