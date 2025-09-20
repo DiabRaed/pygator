@@ -58,6 +58,8 @@ python -m pygator.beam_profile.beam_profile_fit --roi-size 400 --downsample 2 --
 - `r` → start/stop recording frames
 - `R` → calculates average of beam radii and standard deviations at some point z of all recorded frames
 - `n` → command to record the distance the camera has moved from the previous point. Takes values in inches. Once entered, repeat `r` and `R` to record the next data point.
+- `[` → command to decrease the coordinate rotation angle by one degree
+- `]` → command to increase the coordinate rotation angle by one degree
 - `f` → save recorded data to CSV (`--output`) and display the fit. The fit is done with pygator.module.fit_beam_profile_ODR
 - `q` → quit  
 
@@ -67,6 +69,10 @@ After saving the `.csv` file, you can fit the beam profile manually using:
 This is the exact fit shown after pressing `f`.  
 See example in  
 [beam_profile_FLIR](../../Tests/beam_profile_FLIR.py).
+
+**Coordinates**
+The script shows 2 sets of coordinates, a fixed coordinate system in red and a fitted coordinate system in yellow. The fitted coordinate system (as well as theta_fit printed on the screen) are only for diagnostic puproses and are not the coordinates to which the Gaussian is fit. The red coordinates are the true coordinates to fit the Gaussian. You can control the true coordinates using `[` and `]` to decreases and decrease the rotation angle by 1 degree. In both coordinate systems, the dashed line is the x-axis and the solid line is the y-axis. See picture [coordinates](./Pictures/coordinates.png) to see the coordinates.
+
 
 ---
 

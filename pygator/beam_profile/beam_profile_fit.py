@@ -51,8 +51,7 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
 
     theta_val = float(theta_val)  # ensure numeric
     theta_step = 1.0  # degrees per key press
-
-    z_list, wx_list, wy_list, wx_std_list, wy_std_list = [], [], [], [], []
+    z_list, wx_list, wy_list, wx_std_list, wy_std_list, theta_fit_list, A_list, B_list  = [], [], [], [], [], [], [], []
     wx_temp, wy_temp = [], []
     meshgrid_cache = {}
     z_position = 0.0
@@ -61,8 +60,11 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
     print("  [r] Record current sample (adds to buffer)")
     print("  [R] Finalize buffer (mean/std saved to dataset)")
     print("  [n] Move camera (input distance in inches)")
+    print("  [[] Decreases the true coordinate rotation angle by 1 degree")
+    print("  []] Increase the true coordinate rotation angle by 1 degree")
     print("  [f] Fit data and finish")
     print("  [q] Quit without fitting")
+
 
     plt.ion()
     plt.figure("Beam Width Live Plot")
@@ -81,9 +83,9 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 if len(z_list) > 0:
                     with open(temp_file, "w", newline="") as f:
                         writer = csv.writer(f)
-                        writer.writerow(["z [m]", "wx [m]", "wy [m]", "wx_std [m]", "wy_std [m]"])
+                        writer.writerow(["z [m]", "wx [m]", "wy [m]", "wx_std [m]", "wy_std [m]", "theta_fit [deg]", "A [grayscale unit]", "B [grayscale unit]"])
                         for i in range(len(z_list)):
-                            writer.writerow([z_list[i], wx_list[i], wy_list[i], wx_std_list[i], wy_std_list[i]])
+                            writer.writerow([z_list[i], wx_list[i], wy_list[i], wx_std_list[i], wy_std_list[i], theta_fit_list[i], A_list[i], B_list[i]])
                     print(f"Partial data saved to {temp_file}")
 
                 break  # Exit the loop gracefully
@@ -168,6 +170,24 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 pt2 = rotate_point(0, Ly, theta, x0, y0)
                 cv2.line(display_img, pt1, pt2, (0, 0, 255), 1)
 
+                # Horizontal line (dashed approximation)
+                num_dashes = 10
+                for i in range(num_dashes):
+                    start_frac = i / num_dashes
+                    end_frac = (i + 0.5) / num_dashes
+                    x_start = -Lx + 2 * Lx * start_frac
+                    x_end   = -Lx + 2 * Lx * end_frac
+                    y_start, y_end = 0, 0
+                    pt1 = rotate_point(x_start, y_start, theta_fit, x0, y0)
+                    pt2 = rotate_point(x_end, y_end, theta_fit, x0, y0)
+                    cv2.line(display_img, pt1, pt2, (0, 255, 255), 1)
+
+                # Vertical line (solid)
+                pt1 = rotate_point(0, -Ly, theta_fit, x0, y0)
+                pt2 = rotate_point(0, Ly, theta_fit, x0, y0)
+                cv2.line(display_img, pt1, pt2, (0, 255, 255), 1)
+
+
 
                 # Draw text
                 draw_text(display_img, f"A = {A}", (10, 20), color=text_color)
@@ -175,7 +195,7 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 draw_text(display_img, f"w_y = {w_y_m*1e6:.2f} um", (10, 60), color=text_color)
                 draw_text(display_img, f"B = {params[5]} ", (10, 80), color=text_color)
                 draw_text(display_img, f"z = {z_position*1000:.3f} mm", (10, 100), color=text_color)
-                draw_text(display_img, f"theta_fit = {theta_fit*180/np.pi:.2f} deg", (10, 120), color=text_color)
+                draw_text(display_img, f"theta_fit (Diagnostic only) = {(theta_fit*180/np.pi)%360:.2f} deg", (10, 120), color=text_color)
                 draw_text(display_img, f"theta_user = {theta*180/np.pi:.2f} deg", (10, 140), color=text_color)
 
             except Exception as e:
@@ -204,10 +224,16 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                     wx_std_list.append(w_x_std)
                     wy_std_list.append(w_y_std)
                     z_list.append(z_position)
+                    theta_fit_list.append(theta_fit%360)
+                    A_list.append(A)
+                    B_list.append(params[5])
 
                     print(f"Recorded batch: z={z_position:.3f} m, "
                           f"wx={w_x_mean*1e6:.2f}±{w_x_std*1e6:.2f} um, "
-                          f"wy={w_y_mean*1e6:.2f}±{w_y_std*1e6:.2f} um")
+                          f"wy={w_y_mean*1e6:.2f}±{w_y_std*1e6:.2f} um, "
+                          f"A = {A:.2f} grayscale unit, "
+                          f"B = {params[5]:.2f} grayscale unit"
+                          f"theta_fit={theta_fit:.2f} deg")
 
                     plt.clf()
                     plt.errorbar(z_list, np.array(wx_list)*1e6, yerr=np.array(wx_std_list)*1e6, fmt='o', label='wx', capsize=3)
@@ -252,6 +278,8 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 wy = np.array(wy_list)
                 wx_std = np.array(wx_std_list)
                 wy_std = np.array(wy_std_list)
+                A_val = np.array(A_list)
+                B_val = np.array(B_list)
 
                 sol_x, sol_y = fit_beam_profile_ODR(
                     z, wx, z, wy,
@@ -280,9 +308,9 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 if ask_to_save():
                     with open(output_file, "w", newline="") as f:
                         writer = csv.writer(f)
-                        writer.writerow(["z [m]", "wx [m]", "wy [m]", "wx_std [m]", "wy_std [m]"])
+                        writer.writerow(["z [m]", "wx [m]", "wy [m]", "wx_std [m]", "wy_std [m]", "theta_fit [deg]", "A [grayscale unit]", "B [grayscale unit]"])
                         for i in range(len(z_list)):
-                            writer.writerow([z_list[i], wx_list[i], wy_list[i], wx_std_list[i], wy_std_list[i]])
+                            writer.writerow([z_list[i], wx_list[i], wy_list[i], wx_std_list[i], wy_std_list[i], theta_fit_list[i], A_list[i], B_list[i]])
                         writer.writerow([])
                         writer.writerow(["q_x", f"'{q_x}'"])
                         writer.writerow(["q_y", f"'{q_y}'"])

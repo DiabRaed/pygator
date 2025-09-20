@@ -39,7 +39,7 @@ def live_visualize_beam(roi_size=200, downsample=2, exposure='auto', gain='auto'
                 params = fit_gaussian_roi(img, roi_size=roi_size,
                                           downsample=downsample,
                                           meshgrid_cache=meshgrid_cache)
-                A, x0, y0, w_x, w_y, B = params
+                A, x0, y0, w_x, w_y, B,theta_fit ,theta_user= params
 
                 # Extract ROI
                 max_y, max_x = np.unravel_index(np.argmax(img), img.shape)
@@ -53,7 +53,7 @@ def live_visualize_beam(roi_size=200, downsample=2, exposure='auto', gain='auto'
                 y = np.arange(h)
                 x = np.arange(w)
                 xg, yg = np.meshgrid(x, y)
-
+                params=params[:-1]
                 # Fitted Gaussian
                 fitted = gaussian_2d((xg, yg), *params).reshape(cropped.shape)
 

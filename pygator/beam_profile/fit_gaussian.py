@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
 
-def gaussian_2d_rotated(coords, A, x0, y0, w_x, w_y, B, theta=0):
+def gaussian_2d(coords, A, x0, y0, w_x, w_y, B, theta=0):
     x, y = coords
     xr = (x - x0) * np.cos(theta) - (y - y0) * np.sin(theta)
     yr = (x - x0) * np.sin(theta) + (y - y0) * np.cos(theta)
@@ -85,25 +85,34 @@ def fit_gaussian_roi(image, roi_size=100, downsample=1, meshgrid_cache={},warn_o
 
     # --- Fit with fixed user theta ---
     theta_user_rad = theta_user * np.pi / 180
-    fitfun_fixed = lambda coords, A, x0, y0, w_x, w_y, B: gaussian_2d_rotated(
+    fitfun_fixed = lambda coords, A, x0, y0, w_x, w_y, B: gaussian_2d(
         coords, A, x0, y0, w_x, w_y, B, theta=theta_user_rad
     )
+
+    bounds_lower = (0,   -np.inf, -np.inf, 0,   0,   -np.inf) 
+    bounds_upper = (np.inf, np.inf,  np.inf, np.inf, np.inf, np.inf)
+
     popt_fixed, _ = curve_fit(
         fitfun_fixed,
         (xg, yg),
         cropped.ravel(),
         p0=(A_init, x0_init, y0_init, w_x_init, w_y_init, B_init),
+        bounds=(bounds_lower, bounds_upper),
         maxfev=10000
     )
     A, x0, y0, w_x, w_y, B = popt_fixed
 
     # --- Fit with free theta (diagnostic only) ---
     try:
+        bounds_lower = (0,   -np.inf, -np.inf, 0,   0,   -np.inf, 0)
+        bounds_upper = (np.inf, np.inf,  np.inf, np.inf, np.inf, np.inf,  np.pi)
+
         popt_free, _ = curve_fit(
-            gaussian_2d_rotated,
+            gaussian_2d,
             (xg, yg),
             cropped.ravel(),
             p0=(A_init, x0_init, y0_init, w_x_init, w_y_init, B_init, theta_init),
+            bounds=(bounds_lower, bounds_upper),
             maxfev=10000
         )
         theta_fit = popt_free[-1]
