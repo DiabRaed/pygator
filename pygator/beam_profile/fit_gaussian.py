@@ -129,7 +129,7 @@ def fit_gaussian_roi(image, roi_size=100, downsample=1, meshgrid_cache={},warn_o
     w_x *= downsample
     w_y *= downsample
 
-    return (A, x0, y0, w_x, w_y, B, theta_fit, theta_user_rad)
+    return (A, x0, y0, w_x, w_y, B, theta_fit*180/np.pi, theta_user)
 
 
 

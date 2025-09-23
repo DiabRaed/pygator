@@ -74,7 +74,6 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
         plt.ion()
         residual_fig,residual_ax=plt.subplots()
         residual_im=None
-
         while True:
                 # Try to grab a frame
             try:
@@ -201,37 +200,77 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 draw_text(display_img, f"z = {z_position*1000:.2f} mm", (10, 100), color=text_color)
                 draw_text(display_img, f"Fit theta (Diagnostic only) = {(theta_fit*180/np.pi)%360:.2f} deg", (10, 120), color=text_color)
                 draw_text(display_img, f"User theta = {theta*180/np.pi:.2f} deg", (10, 140), color=text_color)
+                draw_text(display_img, f"x0,y0 = {x0} {y0}", (10, 160), color=text_color)
 
 
 
                 # Let's open a 2nd window to plot the residual 
-                roi_data = img[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
-                X_fit = np.arange(roi.shape[1])
-                Y_fit = np.arange(roi.shape[0])
+                # roi_data = img #[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
+                X_fit = np.arange(img.shape[1])
+                Y_fit = np.arange(img.shape[0])
                 X, Y = np.meshgrid(X_fit, Y_fit)
-                gaussian_fit_ROI=gaussian_2d((X,Y),params[0],params[1],params[2],params[3],params[4],params[5],theta)
-                residual=roi_data-gaussian_fit
+                gaussian_fit_ROI=gaussian_2d((X,Y),params[0],params[1],params[2],params[3],params[4],params[5],theta).reshape(img.shape)
+                # print("size roi",np.shape(roi_data),'size gaussian', np.shape(gaussian_fit_ROI))
+                residual=img-gaussian_fit_ROI
 
-                # cv2.imshow('residual',residual)
-                # I used matplotlib rather than openCV because we can get the colorbar here
-                if residual_im is None:
-                    # First frame: create the image object and colorbar
-                    residual_im = residual_ax.imshow(residual, cmap='bwr', origin='upper')
-                    cbar = residual_fig.colorbar(residual_im, ax=residual_ax)
-                    cbar.set_label('Residual (fit - data)')
-                    residual_ax.set_title("Residual")
-                else:
-                    # just update the existing image
-                    residual_im.set_data(residual)
-                    residual_im.set_clim(residual.min(), residual.max())  # updating the colorbar scale
 
-                residual_fig.canvas.draw()
-                residual_fig.canvas.flush_events()
-                
+                # Normalize residual to 0-255 for color mapping
+                residual_norm = cv2.normalize(residual, None, 0, 255, cv2.NORM_MINMAX)
+                residual_uint8 = np.uint8(residual_norm)
+                residual_color = cv2.applyColorMap(residual_uint8, cv2.COLORMAP_JET)
+
+                # create the colorbar
+                h, w, _ = residual_color.shape
+                bar_width = 100
+                scale_factor = 1  # 90% of the height of residual
+                bar_height = int(h * scale_factor)
+
+                gradient = np.linspace(0, 255, bar_height).astype(np.uint8)
+                gradient = np.tile(gradient[:, None], (1, bar_width))
+                colorbar = cv2.applyColorMap(gradient, cv2.COLORMAP_JET)
+
+                # Pad the colorbar to match residual height
+                pad_top = (h - bar_height) // 2
+                pad_bottom = h - bar_height - pad_top
+                colorbar = cv2.copyMakeBorder(colorbar, pad_top, pad_bottom, 0, 0, cv2.BORDER_CONSTANT, value=[0,0,0])
+
+                # printing min and max on the screen
+                min_val, max_val = np.min(residual), np.max(residual)
+                # print(h)
+                cv2.putText(colorbar, f"Max: {max_val:.2f}", (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
+                cv2.putText(colorbar, f"Min: {min_val:.2f}", (0, h-(int(h/4))), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
+
+                # Concatenate colorbar to the right of the residual
+                residual_display = cv2.hconcat([residual_color, colorbar])
+                cv2.imshow("Residual Window", residual_display)
+
+
+                # if residual_im is None:
+                #     # First frame: create the image object and color bar
+                #     residual_im = residual_ax.imshow(residual, cmap='bwr', origin='upper')
+                #     cbar = residual_fig.colorbar(residual_im, ax=residual_ax)
+                #     cbar.set_label('Residual (fit - data)')
+                #     residual_ax.set_title("Residual")
+
+                #     # 🔑 Prevent figure from stealing focus
+                #     if hasattr(residual_fig.canvas.manager, "window"):
+                #         if hasattr(residual_fig.canvas.manager.window, "raise_"):
+                #             residual_fig.canvas.manager.window.raise_ = lambda: None
+
+                #     # 🔑 Disconnect matplotlib key handler so OpenCV receives all keys
+                #     if hasattr(residual_fig.canvas.manager, "key_press_handler_id"):
+                #         residual_fig.canvas.mpl_disconnect(residual_fig.canvas.manager.key_press_handler_id)
+
+                # else:
+                #     residual_im.set_data(residual)
+                #     # residual_im.set_clim(residual.min(), residual.max())
+                #     residual_fig.canvas.draw()           # update without focus grab
+                #     residual_fig.canvas.flush_events()   # process GUI events
+
             except Exception as e:
                 print("Warning: Fit failed for this frame (beam may be absent or too faint). Skipping frame.")
                 continue  # skip to next frame, no display or processing for this frame
-            cv2.imshow('Beam Profile Fit', display_img)
+            cv2.imshow('Beam Profile Fit Window', display_img)
             key = cv2.waitKey(1) & 0xFF
 
             if key == ord('r'):
