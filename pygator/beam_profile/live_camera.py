@@ -33,6 +33,14 @@ def set_camera_settings(cam, exposure, gain):
     if exposure == 'auto':
         exposure_auto.SetIntValue(exposure_auto.GetEntryByName("Continuous").GetValue())
         print("Exposure: Auto")
+        # Scale down the maximum auto exposure
+        exposure_upper_limit = PySpin.CFloatPtr(nodemap.GetNode("ExposureTimeAutoUpperLimit"))
+        if PySpin.IsAvailable(exposure_upper_limit) and PySpin.IsWritable(exposure_upper_limit):
+            current_limit = exposure_upper_limit.GetValue()
+            new_limit = current_limit / 1000.0   # for example, scale down
+            exposure_upper_limit.SetValue(new_limit)
+            print(f"Auto exposure upper limit set to {new_limit} µs")
+
     else:
         exposure_auto.SetIntValue(exposure_auto.GetEntryByName("Off").GetValue())
         exposure = float(exposure)
