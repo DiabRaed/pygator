@@ -93,7 +93,7 @@ def acquire_images(mode='gray', exposure='auto', gain='auto'):
 
     cam.BeginAcquisition()
     print("Acquisition started. Press 'q' to quit.")
-   screen_w, screen_h = get_screen_size()
+    screen_w, screen_h = get_screen_size()
 
     try:
         while True:

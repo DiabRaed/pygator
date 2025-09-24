@@ -8,6 +8,7 @@ from .fit_gaussian import fit_gaussian_roi, gaussian_2d
 from .live_camera import get_camera_and_start
 from pygator.module import fit_beam_profile_ODR
 import csv
+import PySpin
 
 def draw_text(image, text, pos=(10, 20), color=(255,)):
     font = cv2.FONT_HERSHEY_SIMPLEX
@@ -242,30 +243,7 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
 
                 # Concatenate colorbar to the right of the residual
                 residual_display = cv2.hconcat([residual_color, colorbar])
-                cv2.imshow("Residual Window", residual_display[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]) # showing a window of the ROI size
-
-
-                # if residual_im is None:
-                #     # First frame: create the image object and color bar
-                #     residual_im = residual_ax.imshow(residual, cmap='bwr', origin='upper')
-                #     cbar = residual_fig.colorbar(residual_im, ax=residual_ax)
-                #     cbar.set_label('Residual (fit - data)')
-                #     residual_ax.set_title("Residual")
-
-                #     # 🔑 Prevent figure from stealing focus
-                #     if hasattr(residual_fig.canvas.manager, "window"):
-                #         if hasattr(residual_fig.canvas.manager.window, "raise_"):
-                #             residual_fig.canvas.manager.window.raise_ = lambda: None
-
-                #     # 🔑 Disconnect matplotlib key handler so OpenCV receives all keys
-                #     if hasattr(residual_fig.canvas.manager, "key_press_handler_id"):
-                #         residual_fig.canvas.mpl_disconnect(residual_fig.canvas.manager.key_press_handler_id)
-
-                # else:
-                #     residual_im.set_data(residual)
-                #     # residual_im.set_clim(residual.min(), residual.max())
-                #     residual_fig.canvas.draw()           # update without focus grab
-                #     residual_fig.canvas.flush_events()   # process GUI events
+                cv2.imshow("Residual Window", residual_display) # showing a window of the ROI size
 
             except Exception as e:
                 print("Warning: Fit failed for this frame (beam may be absent or too faint). Skipping frame.")
