@@ -7,6 +7,14 @@ import cv2
 import numpy as np
 import argparse
 
+import tkinter as tk
+
+def get_screen_size():
+    root = tk.Tk()
+    root.withdraw()  # hide main window
+    return root.winfo_screenwidth(), root.winfo_screenheight()
+
+
 def set_camera_settings(cam, exposure, gain):
     if PySpin is None:
         raise ImportError(
@@ -85,20 +93,15 @@ def acquire_images(mode='gray', exposure='auto', gain='auto'):
 
     cam.BeginAcquisition()
     print("Acquisition started. Press 'q' to quit.")
+   screen_w, screen_h = get_screen_size()
 
     try:
         while True:
             image_result = cam.GetNextImage()
-
             if image_result.IsIncomplete():
-                print("Image incomplete with status %d..." % image_result.GetImageStatus())
                 image_result.Release()
                 continue
 
-            # Diagnostic output
-            # print("Pixel format:", image_result.GetPixelFormatName())
-
-            # Get image as NumPy array directly
             try:
                 img = image_result.GetNDArray()
             except Exception as e:
@@ -111,10 +114,16 @@ def acquire_images(mode='gray', exposure='auto', gain='auto'):
             elif mode == 'heatmap':
                 display_img = cv2.applyColorMap(img, cv2.COLORMAP_JET)
             else:
-                print(f"Invalid mode: {mode}")
                 break
 
-            cv2.imshow('Live View - ' + mode, display_img)
+            # --- Auto resize to fit screen ---
+            h, w = display_img.shape[:2]
+            scale = min(screen_w / w, screen_h / h) * 0.9  # leave 10% margin
+            new_size = (int(w * scale), int(h * scale))
+            resized_img = cv2.resize(display_img, new_size, interpolation=cv2.INTER_AREA)
+
+            cv2.namedWindow('Live View - ' + mode, cv2.WINDOW_NORMAL)
+            cv2.imshow('Live View - ' + mode, resized_img)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break

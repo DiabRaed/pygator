@@ -242,7 +242,7 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
 
                 # Concatenate colorbar to the right of the residual
                 residual_display = cv2.hconcat([residual_color, colorbar])
-                cv2.imshow("Residual Window", residual_display)
+                cv2.imshow("Residual Window", residual_display[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]) # showing a window of the ROI size
 
 
                 # if residual_im is None:
@@ -385,6 +385,34 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                         writer.writerow(["q_y", f"'{q_y}'"])
                     print(f"Saved to {output_file}")
                 break
+
+            elif key == ord('p'):
+                try:
+                    nodemap = cam.GetNodeMap()
+
+                    # Turn off auto exposure if it’s on
+                    exposure_auto = PySpin.CEnumerationPtr(nodemap.GetNode("ExposureAuto"))
+                    exposure_auto.SetIntValue(exposure_auto.GetEntryByName("Off").GetValue())
+
+                    # Get the exposure node
+                    exposure_time = PySpin.CFloatPtr(nodemap.GetNode("ExposureTime"))
+
+                    if PySpin.IsAvailable(exposure_time) and PySpin.IsWritable(exposure_time):
+                        new_exp_str = input("Enter new exposure time in µs: ")
+                        try:
+                            new_exp = float(new_exp_str)
+                            # Clamp to camera limits
+                            new_exp = min(max(new_exp, exposure_time.GetMin()), exposure_time.GetMax())
+                            exposure_time.SetValue(new_exp)
+                            print(f"Exposure manually set to {new_exp:.2f} µs")
+                        except ValueError:
+                            print("Invalid number, exposure unchanged.")
+                    else:
+                        print("ExposureTime node not available or not writable.")
+
+                except Exception as e:
+                    print(f"Failed to update exposure: {e}")
+
 
             elif key == ord('q'):
                 print("Quit without fitting.")
