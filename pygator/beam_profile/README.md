@@ -10,11 +10,6 @@
 - [Command Reference](#quick-command-reference)
 
 
-<!-- <p align="center">
-  <img src="/pygator/pygator.png" width="200"/>
-</p> -->
-![pygator logo](https://github.com/DiabRaed/pygator/pyagtor.png)
-
 
 ## Installing PySpin
 To install the PySpin wrapper, follow the instructions in  
