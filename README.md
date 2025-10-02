@@ -1,4 +1,7 @@
+
+![pygator logo](https://github.com/DiabRaed/pygator/pyagtor.png)
 # pygator
+
 
 
 This is a repository for the University of Florida LIGO and LISA Optics groups. Here you can find functions that are commonly and reguarly used in the lab. 
