@@ -1,5 +1,8 @@
 
-![pygator logo]([https://github.com/DiabRaed/pygator/pyagtor.png](https://github.com/DiabRaed/pygator/blob/main/pygator.png))
+<p align="center">
+  <img src="https://raw.githubusercontent.com/DiabRaed/pygator/main/pygator.png" width="200" alt="pygator logo"/>
+</p>
+
 # pygator
 
 
