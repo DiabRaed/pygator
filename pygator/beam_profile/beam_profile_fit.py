@@ -118,8 +118,8 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 w_x_px = params[3]
                 w_y_px = params[4]
 
-                w_x_m = w_x_px * pixel_size_m
-                w_y_m = w_y_px * pixel_size_m
+                w_x_m = w_x_px * pixel_size_m/1.13 #1.13 scaling factor by comparing the FLIR camera to the WinCam
+                w_y_m = w_y_px * pixel_size_m/1.13
                 A = params[0]
 
                 # Use user theta for drawing
@@ -266,8 +266,8 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                     w_y_mean = np.mean(wy_temp)
                     w_x_std = max(np.std(wx_temp), 1e-6)
                     w_y_std = max(np.std(wy_temp), 1e-6)
-                    wx_list.append(w_x_mean/1.13)
-                    wy_list.append(w_y_mean/1.13)
+                    wx_list.append(w_x_mean)
+                    wy_list.append(w_y_mean)
                     wx_std_list.append(w_x_std)
                     wy_std_list.append(w_y_std)
                     z_list.append(z_position)
