@@ -7,7 +7,7 @@
 
 
 
-This is a repository for the University of Florida LIGO and LISA Optics groups. Here you can find functions that are commonly and reguarly used in the lab. 
+This is a repository and a python package for the University of Florida LIGO and LISA Optics groups. Here you can find functions that are commonly and reguarly used in the lab. 
 
 The package can be installed from the source
 

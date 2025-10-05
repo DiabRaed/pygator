@@ -12,8 +12,8 @@ def welch_psd(voltage, sampling_rate, plot=True, window='hann', average=None):
     if plot:
         plt.figure()
         plt.loglog(frequencies, np.sqrt(psd))
-        plt.xlabel('Frequency (Hz)')
-        plt.ylabel('ASD (unit/sqrt(Hz))')
+        plt.xlabel('Frequency [Hz]')
+        plt.ylabel(r'ASD $(unit/sqrt{Hz})$')
         plt.grid(True)
         plt.show()
     

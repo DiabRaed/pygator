@@ -26,8 +26,8 @@ def fft_psd(voltage, sampling_rate, plot=True, resistance=50):
     if plot:
         plt.figure()
         plt.semilogx(freq_positive, psd_db_per_hz)
-        plt.xlabel('Frequency (Hz)')
-        plt.ylabel('Power Spectral Density (dB/Hz)')
+        plt.xlabel('Frequency [Hz]')
+        plt.ylabel('Power Spectral Density [dB/Hz]')
         plt.grid(True)
         plt.show()
     
