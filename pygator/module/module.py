@@ -628,7 +628,6 @@ def fit_beam_profile_curve_fit(zx_data, wx_data, zy_data, wy_data, w0guess, z0gu
         print(f"Rayleigh range beam size is {np.sqrt(2)*sol_x[0]:.2e}")
 
     return sol_x, sol_y
-
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.odr import Model, RealData, ODR
@@ -636,66 +635,25 @@ from scipy.odr import Model, RealData, ODR
 def fit_beam_profile_ODR(
     zx_data, wx_data, zy_data, wy_data,
     w0guess, z0guess,
-    wx_std, wy_std, z_std,
-    wavelength=1064e-9,              # [m] laser wavelength
-    show_plot=1, plotpts=1000,
+    wx_std, wy_std,
+    z_std=0.005,
+    wavelength=1064e-9,
+    show_plot=True, plotpts=1000,
     title='Beam scan fit',
     saveplot=False, filename='beamfit.pdf',
     print_results=True,
-    weight_mode='measured+relative',   # 'measured' | 'measured+relative' | 'measured+distance'
-    frac_err=0.05,                     # dimensionless; used by +relative/+distance
-    sigma_floor=0.0,                   # optional extra floor (meters)
-    iters=2,                           # reweighting passes
-    p=1.0,                             # exponent for distance mode
-    plot_error='measured'              # 'measured' | 'fit'
+    weight_factor=0.0  # 0 = no weighting, 1 = full distance weighting
 ):
-    """
-        Fit Gaussian beam radii with ODR, constraining zR = pi * w0^2 / wavelength.
-        Free parameters are (w0, z0) only.
-
-        Parameters
-        ----------
-        zx_data, zy_data : array
-            Longitudinal positions (m) for X and Y scans.
-        wx_data, wy_data : array
-            Measured beam radii (m) at those positions.
-        w0guess, z0guess : float
-            Initial guesses for beam waist size (m) and position (m).
-        wx_std, wy_std : float or array
-            Measurement uncertainty in beam radii (m) for X and Y scans.
-        z_std : float or array
-            Measurement uncertainty in z positions (m).
-        weight_mode : str
-            Choice of weighting scheme for vertical error bars:
-            - 'measured': use measured uncertainties only.
-            - 'measured+relative': add fractional error ~ frac_err * w(z).
-            - 'measured+distance': add error increasing with |z-z0|/zR.
-        frac_err : float
-            Fractional error used for relative/distance weighting.
-        sigma_floor : float
-            Minimum allowed error bar (m).
-        iters : int
-            Number of reweighting passes.
-
-        Notes
-        -----
-        - `sx_x`, `sx_y`: uncertainties in z positions for X and Y data.
-        - `sy_x_meas`, `sy_y_meas`: measured uncertainties in beam radii.
-        - `sy_x_fit`, `sy_y_fit`: effective uncertainties after applying weighting
-        scheme; these are passed to ODR as vertical error bars.
-        - Horizontal uncertainties (`sx_*`) are typically small compared to
-        vertical (`sy_*`), but ODR can account for both.
-    """
     def as_array(val, like):
         if np.ndim(val) == 0:
             return np.full_like(like, val, dtype=float)
         return np.asarray(val, dtype=float)
 
-    # Gaussian beam model (zR derived from w0)
+    # Gaussian beam model
     def w_of_z(beta, z):
         w0, z0 = beta
         zR = np.pi * w0**2 / wavelength
-        return w0 * np.sqrt(1 + ((z - z0) / zR)**2)
+        return w0 * np.sqrt(1 + ((z - z0)/zR)**2)
 
     def run_fit(z, w, sx, sy, beta0):
         model = Model(w_of_z)
@@ -703,109 +661,80 @@ def fit_beam_profile_ODR(
         odr = ODR(data, model, beta0=beta0)
         return odr.run()
 
-    # Prepare z-uncertainties
+    # Uncertainty arrays
     sx_x = as_array(z_std, zx_data)
     sx_y = as_array(z_std, zy_data)
     sy_x_meas = as_array(wx_std, zx_data)
     sy_y_meas = as_array(wy_std, zy_data)
 
-    def build_sy_fit(z, w_meas, sy_meas, beta, mode):
-        w_pred = w_of_z(beta, z)
-        if mode == 'measured':
-            sy = sy_meas
-        elif mode == 'measured+relative':
-            sy = np.sqrt(sy_meas**2 + (frac_err * w_pred)**2)
-        elif mode == 'measured+distance':
-            w_scale = np.median(w_meas)
-            w0, z0 = beta
-            zR = np.pi * w0**2 / wavelength
-            dist = np.abs(z - z0) / np.abs(zR)
-            sy = np.sqrt(sy_meas**2 + (frac_err * w_scale * (1 + dist**p))**2)
-        else:
-            raise ValueError("Invalid weight_mode.")
+    # ---- Apply weighting based on beam size ----
+    def apply_weighting(w_meas, sy_meas):
+        w_scale = np.median(w_meas)
+        if weight_factor == 0:
+            return sy_meas
+        return sy_meas * (w_meas / w_scale) ** weight_factor
 
-        if sigma_floor > 0:
-            sy = np.maximum(sy, sigma_floor)
-        return sy
+    sy_x = apply_weighting(wx_data, sy_x_meas)
+    sy_y = apply_weighting(wy_data, sy_y_meas)
 
     # ---- X axis fit ----
-    beta_x = [w0guess, z0guess]
-    sy_x_fit = sy_x_meas.copy()
-    for _ in range(max(1, iters)):
-        sy_x_fit = build_sy_fit(zx_data, wx_data, sy_x_meas, beta_x, weight_mode)
-        out_x = run_fit(zx_data, wx_data, sx_x, sy_x_fit, beta_x)
-        beta_x = out_x.beta
-
-    w0out_x, z0out_x = out_x.beta
-    w0out_x_err, z0out_x_err = out_x.sd_beta
-    zRout_x = np.pi * w0out_x**2 / wavelength
-    # error propagation for zR
-    zRout_x_err = (2*np.pi*w0out_x/wavelength) * w0out_x_err
+    out_x = run_fit(zx_data, wx_data, sx_x, sy_x, [w0guess, z0guess])
+    w0_x, z0_x = out_x.beta
+    w0_x_err, z0_x_err = out_x.sd_beta
+    zR_x = np.pi * w0_x**2 / wavelength
+    zR_x_err = (2 * np.pi * w0_x / wavelength) * w0_x_err
 
     # ---- Y axis fit ----
-    beta_y = [w0guess, z0guess]
-    sy_y_fit = sy_y_meas.copy()
-    for _ in range(max(1, iters)):
-        sy_y_fit = build_sy_fit(zy_data, wy_data, sy_y_meas, beta_y, weight_mode)
-        out_y = run_fit(zy_data, wy_data, sx_y, sy_y_fit, beta_y)
-        beta_y = out_y.beta
-
-    w0out_y, z0out_y = out_y.beta
-    w0out_y_err, z0out_y_err = out_y.sd_beta
-    zRout_y = np.pi * w0out_y**2 / wavelength
-    zRout_y_err = (2*np.pi*w0out_y/wavelength) * w0out_y_err
+    out_y = run_fit(zy_data, wy_data, sx_y, sy_y, [w0guess, z0guess])
+    w0_y, z0_y = out_y.beta
+    w0_y_err, z0_y_err = out_y.sd_beta
+    zR_y = np.pi * w0_y**2 / wavelength
+    zR_y_err = (2 * np.pi * w0_y / wavelength) * w0_y_err
 
     # ---- Plot ----
     if show_plot:
         z_min = min(np.min(zx_data), np.min(zy_data))
         z_max = max(np.max(zx_data), np.max(zy_data))
         z_span = z_max - z_min if z_max > z_min else 1.0
-        z_extrapolate_min = z_min - 0.3 * z_span
-        z_extrapolate_max = z_max + 0.3 * z_span
+        z_fit = np.linspace(z_min - 0.3*z_span, z_max + 0.3*z_span, plotpts)
 
-        z_fit = np.linspace(z_extrapolate_min, z_extrapolate_max, plotpts)
-        w_fit_x = w_of_z(out_x.beta, z_fit)
-        w_fit_y = w_of_z(out_y.beta, z_fit)
+        plt.figure(figsize=(5.5,4))
+        plt.errorbar(zx_data, wx_data*1e6, xerr=sx_x, yerr=sy_x*1e6,
+                     fmt='o', label='Data X', color='blue', capsize=3)
+        plt.plot(z_fit, w_of_z(out_x.beta, z_fit)*1e6, label='Fit X', color='blue')
 
-        sy_x_plot = sy_x_meas if plot_error == 'measured' else sy_x_fit
-        sy_y_plot = sy_y_meas if plot_error == 'measured' else sy_y_fit
-
-        plt.figure(figsize=(5.5, 4))
-        plt.errorbar(zx_data, wx_data * 1e6, xerr=sx_x, yerr=sy_x_plot * 1e6,
-                     fmt='o', label='Data X', color='blue')
-        plt.plot(z_fit, w_fit_x * 1e6, label='Fit X', color='blue')
-
-        plt.errorbar(zy_data, wy_data * 1e6, xerr=sx_y, yerr=sy_y_plot * 1e6,
-                     fmt='o', label='Data Y', color='green')
-        plt.plot(z_fit, w_fit_y * 1e6, label='Fit Y', color='green')
+        plt.errorbar(zy_data, wy_data*1e6, xerr=sx_y, yerr=sy_y*1e6,
+                     fmt='o', label='Data Y', color='green', capsize=3)
+        plt.plot(z_fit, w_of_z(out_y.beta, z_fit)*1e6, label='Fit Y', color='green')
 
         plt.xlabel('Position [m]')
-        plt.ylabel('Beam size [$\\mu$m]')
-        plt.xlim((z_extrapolate_min, z_extrapolate_max))
-        plt.legend(loc='best')
+        plt.ylabel('Beam radius [$\\mu$m]')
         plt.title(title)
+        plt.legend()
         plt.grid(True)
         plt.tight_layout()
-
         if saveplot:
             plt.savefig(filename)
         plt.show()
 
     # ---- Results ----
-    sol_x = (w0out_x, z0out_x, zRout_x, w0out_x_err, z0out_x_err, zRout_x_err)
-    sol_y = (w0out_y, z0out_y, zRout_y, w0out_y_err, z0out_y_err, zRout_y_err)
+    sol_x = (w0_x, z0_x, zR_x, w0_x_err, z0_x_err, zR_x_err)
+    sol_y = (w0_y, z0_y, zR_y, w0_y_err, z0_y_err, zR_y_err)
 
     if print_results:
-        print(f"Waist size (x): {sol_x[0]:.3e} ± {sol_x[3]:.2e} m")
-        print(f"Waist location (x): {sol_x[1]:.3e} m ({sol_x[1]/0.0254:.2e} in) ± {sol_x[4]:.2e} m")
-        print(f"Rayleigh range (x): {sol_x[2]:.3e} ± {sol_x[5]:.2e} m")
-        print(f"Waist size (y): {sol_y[0]:.3e} ± {sol_y[3]:.2e} m")
-        print(f"Waist location (y): {sol_y[1]:.3e} m ({sol_y[1]/0.0254:.2e} in) ± {sol_y[4]:.2e} m")
-        print(f"Rayleigh range (y): {sol_y[2]:.3e} ± {sol_y[5]:.2e} m")
-        print(f"Reduced χ² (x): {out_x.res_var:.3f}")
-        print(f"Reduced χ² (y): {out_y.res_var:.3f}")
-    return sol_x, sol_y
+        print(f"X-axis fit:")
+        print(f"  Waist w0 = {w0_x:.3e} ± {w0_x_err:.2e} m")
+        print(f"  Waist z0 = {z0_x:.3e} ± {z0_x_err:.2e} m ({z0_x/0.0254:.2f} in)")
+        print(f"  Rayleigh range zR = {zR_x:.3e} ± {zR_x_err:.2e} m")
+        print(f"  Reduced χ² = {out_x.res_var:.3f}\n")
 
+        print(f"Y-axis fit:")
+        print(f"  Waist w0 = {w0_y:.3e} ± {w0_y_err:.2e} m")
+        print(f"  Waist z0 = {z0_y:.3e} ± {z0_y_err:.2e} m ({z0_y/0.0254:.2f} in)")
+        print(f"  Rayleigh range zR = {zR_y:.3e} ± {zR_y_err:.2e} m")
+        print(f"  Reduced χ² = {out_y.res_var:.3f}")
+
+    return sol_x, sol_y
 
 encoding = 'latin1'
 import re

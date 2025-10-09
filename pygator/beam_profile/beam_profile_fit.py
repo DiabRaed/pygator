@@ -43,7 +43,8 @@ def draw_grid(img, step=50, color=(100, 100, 100), thickness=1):
 
 
 def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
-                     pixel_size_um=6.9, output_file="beam_profile.csv", mode="gray",theta_val=0):
+                     pixel_size_um=6.9, output_file="beam_profile.csv", mode="gray",theta_val=0
+                     ,scaling_factor=1):
 
     pixel_size_m = pixel_size_um * 1e-6
     cam, cam_list, system = get_camera_and_start(exposure, gain)
@@ -118,8 +119,8 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                 w_x_px = params[3]
                 w_y_px = params[4]
 
-                w_x_m = w_x_px * pixel_size_m/1.13 #1.13 scaling factor by comparing the FLIR camera to the WinCam
-                w_y_m = w_y_px * pixel_size_m/1.13
+                w_x_m = w_x_px * pixel_size_m/scaling_factor #1.13 scaling factor by comparing the FLIR camera to the WinCam
+                w_y_m = w_y_px * pixel_size_m/scaling_factor
                 A = params[0]
 
                 # Use user theta for drawing
@@ -419,6 +420,7 @@ if __name__ == '__main__':
     parser.add_argument('--pixel-size', type=float, default=6.9, help='Pixel size in um (default 6.9)')
     parser.add_argument('--output', default="beam_profile.csv", help='Output CSV filename')
     parser.add_argument('--theta_val', type=float, default=0, help='angle to fit in deg')
+    parser.add_argument('--scaling_factor', type=float, default=1, help='Scaling factor')
     parser.add_argument('--mode', choices=['gray', 'heatmap'], default='gray', help='Display mode for live camera (default: gray)')
     args = parser.parse_args()
 
@@ -430,5 +432,6 @@ if __name__ == '__main__':
         pixel_size_um=args.pixel_size,
         output_file=args.output,
         theta_val=args.theta_val,
+        scaling_factor=args.scaling_factor,
         mode=args.mode
     )
