@@ -79,12 +79,11 @@ def HG_mode_sym(x, y, q, n, m, wavelength = 1064e-9):
 
     w0 = sp.sqrt(sp.im(q) * wavelength / np.pi)
     zR = sp.im(q)
-    if sp.re(q) == 0:
-        Rc = sp.oo
-    else:
-        Rc = sp.re(q) + (zR ** 2 / sp.re(q))
-    k = 2 * sp.pi / wavelength
     z = sp.re(q)
+
+    Rc = sp.re(q) + (sp.im(q)**2 / (1e-15+sp.re(q))) #1e-15 added to prevent zero division at the waist
+
+    k = 2 * sp.pi / wavelength
     w = w0 * sp.sqrt(1 + (z / zR) ** 2)
 
     normalization_factor = 1 / sp.sqrt((2 ** (n + m-1)) * sp.pi * sp.factorial(n) * sp.factorial(m))

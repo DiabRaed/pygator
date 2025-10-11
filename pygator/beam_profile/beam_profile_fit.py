@@ -337,8 +337,7 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
                     wy_std=wy_std,
                     z_std=0.005,
                     title='Beam Profile',
-                    print_results=True,
-                    frac_err=0.02
+                    print_results=True
                 )
 
                 q_x = f"{sol_x[1]:.4e} + i{sol_x[2]:.4e}"
