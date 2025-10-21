@@ -70,7 +70,7 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
     print("  []] Increase the true coordinate rotation angle by 1 degree")
     print("  [f] Fit data and finish")
     print("  [q] Quit without fitting")
-
+    print(" Test")
 
     plt.ion()
     plt.figure("Beam Width Live Plot")
