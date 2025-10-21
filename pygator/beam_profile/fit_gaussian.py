@@ -54,7 +54,7 @@ def fit_gaussian_roi(image, roi_size=100, downsample=1, meshgrid_cache={},warn_o
               f"({percent_saturated:.3f}% of image). Max = {np.max(image)}")
         warn_once[0] = True   # remember that we already warned
 
-    # Step 1: Find max pixel for ROI center
+    
     # Step 1: Find COM for ROI center
     com = center_of_mass(image)
     xcom = com[1]

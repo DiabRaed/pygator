@@ -4,8 +4,8 @@ import argparse
 import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import simpledialog, messagebox
-from .fit_gaussian import fit_gaussian_roi, gaussian_2d
-from .live_camera import get_camera_and_start
+from pygator.beam_profile.fit_gaussian import fit_gaussian_roi, gaussian_2d
+from pygator.beam_profile.live_camera import get_camera_and_start
 from pygator.module import fit_beam_profile_ODR
 import csv
 import PySpin
@@ -53,12 +53,16 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
 
     theta_val = float(theta_val)  # ensure numeric
     theta_step = 1.0  # degrees per key press
+    roi_size_step = 20.0 # increase in size of one side of roi per key press
     z_list, wx_list, wy_list, wx_std_list, wy_std_list, theta_fit_list, A_list, B_list  = [], [], [], [], [], [], [], []
     wx_temp, wy_temp = [], []
     meshgrid_cache = {}
     z_position = 0.0
 
     print("Live beam profiling started. Press:")
+    print("  [g] Fit a Gaussian to the beam manually")
+    print("  [s] Increases roi size value by 20 pixels")
+    print("  [d] Decreases roi size value by 20 pixels")
     print("  [r] Record current sample (adds to buffer)")
     print("  [R] Finalize buffer (mean/std saved to dataset)")
     print("  [n] Move camera (input distance in inches)")
@@ -73,6 +77,7 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
 
     try:
         recording = False
+        gaussian_fit_boolean = False
         plt.ion()
         residual_fig,residual_ax=plt.subplots()
         residual_im=None
@@ -109,147 +114,162 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
 
             image_result.Release()
 
-            try:
-                params = fit_gaussian_roi(img, roi_size=roi_size, downsample=downsample, meshgrid_cache=meshgrid_cache,theta_user=theta_val)
-                x0, y0 = int(params[1]), int(params[2])
-                half = roi_size // 2
-                top_left = (max(0, x0 - half), max(0, y0 - half))
-                bottom_right = (min(img.shape[1], x0 + half), min(img.shape[0], y0 + half))
 
-                w_x_px = params[3]
-                w_y_px = params[4]
+            # Choose mode-based display
+            if mode == 'heatmap':
+                display_img = cv2.applyColorMap(img, cv2.COLORMAP_JET)
+                rect_color = (255, 0, 0)  # Blue rectangle
+                text_color = (255, 255, 255)
+                ellipse_color = (255, 255, 255)
+            else:
+                display_img = img
+                rect_color = (200,)       # Light gray rectangle
+                text_color = (255,)
+                ellipse_color = (255,)
 
-                w_x_m = w_x_px * pixel_size_m/scaling_factor #1.13 scaling factor by comparing the FLIR camera to the WinCam
-                w_y_m = w_y_px * pixel_size_m/scaling_factor
-                A = params[0]
+                # params = fit_gaussian_roi(img, roi_size=roi_size, downsample=downsample, meshgrid_cache=meshgrid_cache,theta_user=theta_val)
+                # x0, y0 = int(params[1]), int(params[2])
+                # half = roi_size // 2
+                # top_left = (max(0, x0 - half), max(0, y0 - half))
+                # bottom_right = (min(img.shape[1], x0 + half), min(img.shape[0], y0 + half))
 
-                # Use user theta for drawing
-                theta = params[-1]
-                theta_fit=params[-2] 
+                # w_x_px = params[3]
+                # w_y_px = params[4]
 
-                # Choose mode-based display
-                if mode == 'heatmap':
-                    display_img = cv2.applyColorMap(img, cv2.COLORMAP_JET)
-                    rect_color = (255, 0, 0)  # Blue rectangle
-                    text_color = (255, 255, 255)
-                    ellipse_color = (255, 255, 255)
-                else:
-                    display_img = img
-                    rect_color = (200,)       # Light gray rectangle
-                    text_color = (255,)
-                    ellipse_color = (255,)
+                # w_x_m = w_x_px * pixel_size_m/scaling_factor #1.13 scaling factor by comparing the FLIR camera to the WinCam
+                # w_y_m = w_y_px * pixel_size_m/scaling_factor
+                # A = params[0]
+
+                # # Use user theta for drawing
+                # theta = params[-1]
+                # theta_fit=params[-2] 
+
+                # # Choose mode-based display
+                # if mode == 'heatmap':
+                #     display_img = cv2.applyColorMap(img, cv2.COLORMAP_JET)
+                #     rect_color = (255, 0, 0)  # Blue rectangle
+                #     text_color = (255, 255, 255)
+                #     ellipse_color = (255, 255, 255)
+                # else:
+                #     display_img = img
+                #     rect_color = (200,)       # Light gray rectangle
+                #     text_color = (255,)
+                #     ellipse_color = (255,)
                 
-                #Adding a grid
-                draw_grid(display_img, step=100, color=(100, 100, 100))  # gray grid
-                # Draw ROI rectangle and ellipse
-                cv2.rectangle(display_img, top_left, bottom_right, rect_color, 1)
-                center = (x0, y0)
-                axes = (int(params[3] * 2), int(params[4] * 2))
-                cv2.ellipse(display_img, center, axes, 0, 0, 360, ellipse_color, 1)
+            #     #Adding a grid
+            #     draw_grid(display_img, step=100, color=(100, 100, 100))  # gray grid
+            #     # Draw ROI rectangle and ellipse
+            #     cv2.rectangle(display_img, top_left, bottom_right, rect_color, 1)
+            #     center = (x0, y0)
+            #     axes = (int(params[3] * 2), int(params[4] * 2))
+            #     cv2.ellipse(display_img, center, axes, 0, 0, 360, ellipse_color, 1)
 
-                # Crosshair parameters
-                # Use ROI size for line lengths
-                Lx = (bottom_right[0] - top_left[0]) // 2  # half width
-                Ly = (bottom_right[1] - top_left[1]) // 2  # half height
+            #     # Crosshair parameters
+            #     # Use ROI size for line lengths
+            #     Lx = (bottom_right[0] - top_left[0]) // 2  # half width
+            #     Ly = (bottom_right[1] - top_left[1]) // 2  # half height
 
-                # Function to rotate points
-                def rotate_point(x, y, theta, x0=0, y0=0):
-                    x_rot = (x) * np.cos(theta) + (y) * np.sin(theta) + x0
-                    y_rot = -(x) * np.sin(theta) + (y) * np.cos(theta) + y0
-                    return int(x_rot), int(y_rot)
+            #     # Function to rotate points
+            #     def rotate_point(x, y, theta, x0=0, y0=0):
+            #         x_rot = (x) * np.cos(theta) + (y) * np.sin(theta) + x0
+            #         y_rot = -(x) * np.sin(theta) + (y) * np.cos(theta) + y0
+            #         return int(x_rot), int(y_rot)
 
-                # Horizontal line (dashed approximation)
-                num_dashes = 10
-                for i in range(num_dashes):
-                    start_frac = i / num_dashes
-                    end_frac = (i + 0.5) / num_dashes
-                    x_start = -Lx + 2 * Lx * start_frac
-                    x_end   = -Lx + 2 * Lx * end_frac
-                    y_start, y_end = 0, 0
-                    pt1 = rotate_point(x_start, y_start, theta, x0, y0)
-                    pt2 = rotate_point(x_end, y_end, theta, x0, y0)
-                    cv2.line(display_img, pt1, pt2, (0, 0, 255), 1)
+            #     # Horizontal line (dashed approximation)
+            #     num_dashes = 10
+            #     for i in range(num_dashes):
+            #         start_frac = i / num_dashes
+            #         end_frac = (i + 0.5) / num_dashes
+            #         x_start = -Lx + 2 * Lx * start_frac
+            #         x_end   = -Lx + 2 * Lx * end_frac
+            #         y_start, y_end = 0, 0
+            #         pt1 = rotate_point(x_start, y_start, theta, x0, y0)
+            #         pt2 = rotate_point(x_end, y_end, theta, x0, y0)
+            #         cv2.line(display_img, pt1, pt2, (0, 0, 255), 1)
 
-                # Vertical line (solid)
-                pt1 = rotate_point(0, -Ly, theta, x0, y0)
-                pt2 = rotate_point(0, Ly, theta, x0, y0)
-                cv2.line(display_img, pt1, pt2, (0, 0, 255), 1)
+            #     # Vertical line (solid)
+            #     pt1 = rotate_point(0, -Ly, theta, x0, y0)
+            #     pt2 = rotate_point(0, Ly, theta, x0, y0)
+            #     cv2.line(display_img, pt1, pt2, (0, 0, 255), 1)
 
-                # Horizontal line (dashed approximation)
-                num_dashes = 10
-                for i in range(num_dashes):
-                    start_frac = i / num_dashes
-                    end_frac = (i + 0.5) / num_dashes
-                    x_start = -Lx + 2 * Lx * start_frac
-                    x_end   = -Lx + 2 * Lx * end_frac
-                    y_start, y_end = 0, 0
-                    pt1 = rotate_point(x_start, y_start, theta_fit, x0, y0)
-                    pt2 = rotate_point(x_end, y_end, theta_fit, x0, y0)
-                    cv2.line(display_img, pt1, pt2, (0, 255, 255), 1)
+            #     # Horizontal line (dashed approximation)
+            #     num_dashes = 10
+            #     for i in range(num_dashes):
+            #         start_frac = i / num_dashes
+            #         end_frac = (i + 0.5) / num_dashes
+            #         x_start = -Lx + 2 * Lx * start_frac
+            #         x_end   = -Lx + 2 * Lx * end_frac
+            #         y_start, y_end = 0, 0
+            #         pt1 = rotate_point(x_start, y_start, theta_fit, x0, y0)
+            #         pt2 = rotate_point(x_end, y_end, theta_fit, x0, y0)
+            #         cv2.line(display_img, pt1, pt2, (0, 255, 255), 1)
 
-                # Vertical line (solid)
-                pt1 = rotate_point(0, -Ly, theta_fit, x0, y0)
-                pt2 = rotate_point(0, Ly, theta_fit, x0, y0)
-                cv2.line(display_img, pt1, pt2, (0, 255, 255), 1)
-
-
-
-                # Draw text
-                draw_text(display_img, f"A = {A:.2f} Grayscale Unit", (10, 20), color=text_color)
-                draw_text(display_img, f"w_x = {w_x_m*1e6:.2f} um", (10, 40), color=text_color)
-                draw_text(display_img, f"w_y = {w_y_m*1e6:.2f} um", (10, 60), color=text_color)
-                draw_text(display_img, f"B = {params[5]:.2f} Grayscale Unit", (10, 80), color=text_color)
-                draw_text(display_img, f"z = {z_position*1000:.2f} mm", (10, 100), color=text_color)
-                draw_text(display_img, f"Fit theta (Diagnostic only) = {(theta_fit*180/np.pi)%360:.2f} deg", (10, 120), color=text_color)
-                draw_text(display_img, f"User theta = {theta*180/np.pi:.2f} deg", (10, 140), color=text_color)
-                draw_text(display_img, f"x0,y0 = {x0} {y0}", (10, 160), color=text_color)
+            #     # Vertical line (solid)
+            #     pt1 = rotate_point(0, -Ly, theta_fit, x0, y0)
+            #     pt2 = rotate_point(0, Ly, theta_fit, x0, y0)
+            #     cv2.line(display_img, pt1, pt2, (0, 255, 255), 1)
 
 
 
-                # Let's open a 2nd window to plot the residual 
-                # roi_data = img #[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
-                X_fit = np.arange(img.shape[1])
-                Y_fit = np.arange(img.shape[0])
-                X, Y = np.meshgrid(X_fit, Y_fit)
-                gaussian_fit_ROI=gaussian_2d((X,Y),params[0],params[1],params[2],params[3],params[4],params[5],theta).reshape(img.shape)
-                # print("size roi",np.shape(roi_data),'size gaussian', np.shape(gaussian_fit_ROI))
-                residual=img-gaussian_fit_ROI
+            #     # Draw text
+            #     draw_text(display_img, f"A = {A:.2f} Grayscale Unit", (10, 20), color=text_color)
+            #     draw_text(display_img, f"w_x = {w_x_m*1e6:.2f} um", (10, 40), color=text_color)
+            #     draw_text(display_img, f"w_y = {w_y_m*1e6:.2f} um", (10, 60), color=text_color)
+            #     draw_text(display_img, f"B = {params[5]:.2f} Grayscale Unit", (10, 80), color=text_color)
+            #     draw_text(display_img, f"z = {z_position*1000:.2f} mm", (10, 100), color=text_color)
+            #     draw_text(display_img, f"Fit theta (Diagnostic only) = {(theta_fit*180/np.pi)%360:.2f} deg", (10, 120), color=text_color)
+            #     draw_text(display_img, f"User theta = {theta*180/np.pi:.2f} deg", (10, 140), color=text_color)
+            #     draw_text(display_img, f"x0,y0 = {x0} {y0}", (10, 160), color=text_color)
 
 
-                # Normalize residual to 0-255 for color mapping
-                residual_norm = cv2.normalize(residual, None, 0, 255, cv2.NORM_MINMAX)
-                residual_uint8 = np.uint8(residual_norm)
-                residual_color = cv2.applyColorMap(residual_uint8, cv2.COLORMAP_JET)
 
-                # create the colorbar
-                h, w, _ = residual_color.shape
-                bar_width = 100
-                scale_factor = 1  # 90% of the height of residual
-                bar_height = int(h * scale_factor)
+            #     # Let's open a 2nd window to plot the residual 
+            #     # roi_data = img #[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
+            #     X_fit = np.arange(img.shape[1])
+            #     Y_fit = np.arange(img.shape[0])
+            #     X, Y = np.meshgrid(X_fit, Y_fit)
+            #     gaussian_fit_ROI=gaussian_2d((X,Y),params[0],params[1],params[2],params[3],params[4],params[5],theta).reshape(img.shape)
+            #     # print("size roi",np.shape(roi_data),'size gaussian', np.shape(gaussian_fit_ROI))
+            #     residual=img-gaussian_fit_ROI
 
-                gradient = np.linspace(0, 255, bar_height).astype(np.uint8)
-                gradient = np.tile(gradient[:, None], (1, bar_width))
-                colorbar = cv2.applyColorMap(gradient, cv2.COLORMAP_JET)
 
-                # Pad the colorbar to match residual height
-                pad_top = (h - bar_height) // 2
-                pad_bottom = h - bar_height - pad_top
-                colorbar = cv2.copyMakeBorder(colorbar, pad_top, pad_bottom, 0, 0, cv2.BORDER_CONSTANT, value=[0,0,0])
+            #     # Normalize residual to 0-255 for color mapping
+            #     residual_norm = cv2.normalize(residual, None, 0, 255, cv2.NORM_MINMAX)
+            #     residual_uint8 = np.uint8(residual_norm)
+            #     residual_color = cv2.applyColorMap(residual_uint8, cv2.COLORMAP_JET)
 
-                # printing min and max on the screen
-                min_val, max_val = np.min(residual), np.max(residual)
-                # print(h)
-                cv2.putText(colorbar, f"Max: {max_val:.2f}", (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
-                cv2.putText(colorbar, f"Min: {min_val:.2f}", (0, h-(int(h/4))), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
+            #     # create the colorbar
+            #     h, w, _ = residual_color.shape
+            #     bar_width = 100
+            #     scale_factor = 1  # 90% of the height of residual
+            #     bar_height = int(h * scale_factor)
 
-                # Concatenate colorbar to the right of the residual
-                residual_display = cv2.hconcat([residual_color, colorbar])
-                cv2.imshow("Residual Window", residual_display) # showing a window of the ROI size
+            #     gradient = np.linspace(0, 255, bar_height).astype(np.uint8)
+            #     gradient = np.tile(gradient[:, None], (1, bar_width))
+            #     colorbar = cv2.applyColorMap(gradient, cv2.COLORMAP_JET)
 
-            except Exception as e:
-                print("Warning: Fit failed for this frame (beam may be absent or too faint). Skipping frame.")
-                continue  # skip to next frame, no display or processing for this frame
-            cv2.imshow('Beam Profile Fit Window', display_img)
+            #     # Pad the colorbar to match residual height
+            #     pad_top = (h - bar_height) // 2
+            #     pad_bottom = h - bar_height - pad_top
+            #     colorbar = cv2.copyMakeBorder(colorbar, pad_top, pad_bottom, 0, 0, cv2.BORDER_CONSTANT, value=[0,0,0])
+
+            #     # printing min and max on the screen
+            #     min_val, max_val = np.min(residual), np.max(residual)
+            #     # print(h)
+            #     cv2.putText(colorbar, f"Max: {max_val:.2f}", (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
+            #     cv2.putText(colorbar, f"Min: {min_val:.2f}", (0, h-(int(h/4))), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
+
+            #     # Concatenate colorbar to the right of the residual
+            #     residual_display = cv2.hconcat([residual_color, colorbar])
+            #     cv2.imshow("Residual Window", residual_display) # showing a window of the ROI size
+
+            # except Exception as e:
+            #     print("Warning: Fit failed for this frame (beam may be absent or too faint). Skipping frame.")
+            #     continue  # skip to next frame, no display or processing for this frame
+            # cv2.imshow('Beam Profile Fit Window', display_img)
+            # key = cv2.waitKey(1) & 0xFF
+            
+            # cv2.imshow('Beam Profile Fit Window', display_img)
             key = cv2.waitKey(1) & 0xFF
 
             if key == ord('r'):
@@ -395,6 +415,155 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
             elif key == ord('q'):
                 print("Quit without fitting.")
                 break
+
+            elif key == ord('s'):
+                roi_size += roi_size_step
+                roi_size = int(roi_size)
+                print(f"ROI size adjusted: {roi_size}x{roi_size} pixels")
+
+            elif key ==ord('d'):
+                roi_size -= roi_size_step
+                roi_size = int(roi_size)
+                print(f"ROI size adjusted: {roi_size}x{roi_size} pixels")
+            
+            elif key == ord('g'):
+                gaussian_fit_boolean = not gaussian_fit_boolean
+                print(f"Gaussian fit {'ON' if gaussian_fit_boolean else 'OFF'}...")
+
+            if gaussian_fit_boolean:
+                try:
+                    params = fit_gaussian_roi(img, roi_size=roi_size, downsample=downsample, meshgrid_cache=meshgrid_cache,theta_user=theta_val)
+                    x0, y0 = int(params[1]), int(params[2])
+                    half = roi_size // 2
+                    top_left = (max(0, x0 - half), max(0, y0 - half))
+                    bottom_right = (min(img.shape[1], x0 + half), min(img.shape[0], y0 + half))
+
+                    w_x_px = params[3]
+                    w_y_px = params[4]
+
+                    w_x_m = w_x_px * pixel_size_m/scaling_factor #1.13 scaling factor by comparing the FLIR camera to the WinCam
+                    w_y_m = w_y_px * pixel_size_m/scaling_factor
+                    A = params[0]
+
+                    # Use user theta for drawing
+                    theta = params[-1]
+                    theta_fit=params[-2] 
+
+
+                    #Adding a grid
+                    draw_grid(display_img, step=100, color=(100, 100, 100))  # gray grid
+                    # Draw ROI rectangle and ellipse
+                    cv2.rectangle(display_img, top_left, bottom_right, rect_color, 1)
+                    center = (x0, y0)
+                    axes = (int(params[3] * 2), int(params[4] * 2))
+                    cv2.ellipse(display_img, center, axes, 0, 0, 360, ellipse_color, 1)
+
+                    # Crosshair parameters
+                    # Use ROI size for line lengths
+                    Lx = (bottom_right[0] - top_left[0]) // 2  # half width
+                    Ly = (bottom_right[1] - top_left[1]) // 2  # half height
+
+                    # Function to rotate points
+                    def rotate_point(x, y, theta, x0=0, y0=0):
+                        x_rot = (x) * np.cos(theta) + (y) * np.sin(theta) + x0
+                        y_rot = -(x) * np.sin(theta) + (y) * np.cos(theta) + y0
+                        return int(x_rot), int(y_rot)
+
+                    # Horizontal line (dashed approximation)
+                    num_dashes = 10
+                    for i in range(num_dashes):
+                        start_frac = i / num_dashes
+                        end_frac = (i + 0.5) / num_dashes
+                        x_start = -Lx + 2 * Lx * start_frac
+                        x_end   = -Lx + 2 * Lx * end_frac
+                        y_start, y_end = 0, 0
+                        pt1 = rotate_point(x_start, y_start, theta, x0, y0)
+                        pt2 = rotate_point(x_end, y_end, theta, x0, y0)
+                        cv2.line(display_img, pt1, pt2, (0, 0, 255), 1)
+
+                    # Vertical line (solid)
+                    pt1 = rotate_point(0, -Ly, theta, x0, y0)
+                    pt2 = rotate_point(0, Ly, theta, x0, y0)
+                    cv2.line(display_img, pt1, pt2, (0, 0, 255), 1)
+
+                    # Horizontal line (dashed approximation)
+                    num_dashes = 10
+                    for i in range(num_dashes):
+                        start_frac = i / num_dashes
+                        end_frac = (i + 0.5) / num_dashes
+                        x_start = -Lx + 2 * Lx * start_frac
+                        x_end   = -Lx + 2 * Lx * end_frac
+                        y_start, y_end = 0, 0
+                        pt1 = rotate_point(x_start, y_start, theta_fit, x0, y0)
+                        pt2 = rotate_point(x_end, y_end, theta_fit, x0, y0)
+                        cv2.line(display_img, pt1, pt2, (0, 255, 255), 1)
+
+                    # Vertical line (solid)
+                    pt1 = rotate_point(0, -Ly, theta_fit, x0, y0)
+                    pt2 = rotate_point(0, Ly, theta_fit, x0, y0)
+                    cv2.line(display_img, pt1, pt2, (0, 255, 255), 1)
+
+
+                    # Draw text
+                    draw_text(display_img, f"A = {A:.2f} Grayscale Unit", (10, 20), color=text_color)
+                    draw_text(display_img, f"w_x = {w_x_m*1e6:.2f} um", (10, 40), color=text_color)
+                    draw_text(display_img, f"w_y = {w_y_m*1e6:.2f} um", (10, 60), color=text_color)
+                    draw_text(display_img, f"B = {params[5]:.2f} Grayscale Unit", (10, 80), color=text_color)
+                    draw_text(display_img, f"z = {z_position*1000:.2f} mm", (10, 100), color=text_color)
+                    draw_text(display_img, f"Fit theta (Diagnostic only) = {(theta_fit*180/np.pi)%360:.2f} deg", (10, 120), color=text_color)
+                    draw_text(display_img, f"User theta = {theta*180/np.pi:.2f} deg", (10, 140), color=text_color)
+                    draw_text(display_img, f"x0,y0 = {x0} {y0}", (10, 160), color=text_color)
+
+
+                    # Let's open a 2nd window to plot the residual 
+                    # roi_data = img #[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
+                    X_fit = np.arange(img.shape[1])
+                    Y_fit = np.arange(img.shape[0])
+                    X, Y = np.meshgrid(X_fit, Y_fit)
+                    gaussian_fit_ROI=gaussian_2d((X,Y),params[0],params[1],params[2],params[3],params[4],params[5],theta).reshape(img.shape)
+                    # print("size roi",np.shape(roi_data),'size gaussian', np.shape(gaussian_fit_ROI))
+                    residual=img-gaussian_fit_ROI
+
+
+                    # Normalize residual to 0-255 for color mapping
+                    residual_norm = cv2.normalize(residual, None, 0, 255, cv2.NORM_MINMAX)
+                    residual_uint8 = np.uint8(residual_norm)
+                    residual_color = cv2.applyColorMap(residual_uint8, cv2.COLORMAP_JET)
+
+                    # create the colorbar
+                    h, w, _ = residual_color.shape
+                    bar_width = 100
+                    scale_factor = 1  # 90% of the height of residual
+                    bar_height = int(h * scale_factor)
+
+                    gradient = np.linspace(0, 255, bar_height).astype(np.uint8)
+                    gradient = np.tile(gradient[:, None], (1, bar_width))
+                    colorbar = cv2.applyColorMap(gradient, cv2.COLORMAP_JET)
+
+                    # Pad the colorbar to match residual height
+                    pad_top = (h - bar_height) // 2
+                    pad_bottom = h - bar_height - pad_top
+                    colorbar = cv2.copyMakeBorder(colorbar, pad_top, pad_bottom, 0, 0, cv2.BORDER_CONSTANT, value=[0,0,0])
+
+                    # printing min and max on the screen
+                    min_val, max_val = np.min(residual), np.max(residual)
+                    # print(h)
+                    cv2.putText(colorbar, f"Max: {max_val:.2f}", (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
+                    cv2.putText(colorbar, f"Min: {min_val:.2f}", (0, h-(int(h/4))), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1)
+
+                    # Concatenate colorbar to the right of the residual
+                    residual_display = cv2.hconcat([residual_color, colorbar])
+                    cv2.imshow("Residual Window", residual_display) # showing a window of the ROI size
+                    cv2.imshow('Beam Profile Fit Window', display_img)
+
+                except Exception as e:
+                    print("Warning: Fit failed for this frame (beam may be absent or too faint). Skipping frame.")
+                    continue  # skip to next frame, no display or processing for this frame
+                
+            elif gaussian_fit_boolean == False:
+                cv2.imshow('Beam Profile Fit Window', display_img)
+
+        
 
     finally:
         cam.EndAcquisition()

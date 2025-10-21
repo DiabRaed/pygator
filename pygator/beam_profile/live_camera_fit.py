@@ -1,6 +1,6 @@
 import cv2
-from .fit_gaussian import *
-from .live_camera import get_camera_and_start
+from pygator.beam_profile.fit_gaussian import *
+from pygator.beam_profile.live_camera import get_camera_and_start
 import argparse
 
 def draw_fit_info(image, params, color=(255,),pixelsize=6.9):
