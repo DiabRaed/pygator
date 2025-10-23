@@ -44,15 +44,19 @@ Unlike `live_camera_fit.py`, this script can record beam waist data (`wx`, `wy`)
 
 **From Git:**
 ```bash
-python beam_profile_fit.py --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap --theta_val 0 
+python beam_profile_fit.py --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 3.45 --output my_beam_scan.csv --mode heatmap --theta_val 0 
 ```
 
 **From pip:**
 ```bash
-python -m pygator.beam_profile.beam_profile_fit --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap --theta_val 0 
+python -m pygator.beam_profile.beam_profile_fit --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 3.45 --output my_beam_scan.csv --mode heatmap --theta_val 0 
 ```
 
 **Controls:**
+- `g` → turns Gaussian fit of ROI on/off
+- `s` → command to increase the length of each side of ROI square by 20 pixels
+- `d` → command to decrease the length of each side of ROI square by 20 pixels
+- `p` → manually changes exposure time
 - `r` → start/stop recording frames
 - `R` → calculates average of beam radii and standard deviations at some point z of all recorded frames
 - `n` → command to record the distance the camera has moved from the previous point. Takes values in inches. Once entered, repeat `r` and `R` to record the next data point.
@@ -138,7 +142,7 @@ python -m pygator.beam_profile.live_camera --mode heatmap --exposure 10000 --gai
 
 | Script              | From Git                                                                 | From pip                                                                                   |
 |---------------------|---------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
-| **Beam Profile Fit** | `python beam_profile_fit.py --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap` | `python -m pygator.beam_profile.beam_profile_fit --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 6.9 --output my_beam_scan.csv --mode heatmap` |
+| **Beam Profile Fit** | `python beam_profile_fit.py --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 3.45 --output my_beam_scan.csv --mode heatmap` | `python -m pygator.beam_profile.beam_profile_fit --roi-size 400 --downsample 2 --exposure auto --gain auto --pixel-size 3.45 --output my_beam_scan.csv --mode heatmap` |
 | **Live Camera Fit**  | `python live_camera_fit.py --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0` | `python -m pygator.beam_profile.live_camera_fit --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0` |
 | **Live Camera**      | `python live_camera.py --mode heatmap --roi-size 350 --downsample 2 --exposure 10000 --gain 0` | `python -m pygator.beam_profile.live_camera --mode heatmap --exposure 10000 --gain 0` |
 

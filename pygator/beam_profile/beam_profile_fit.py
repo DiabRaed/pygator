@@ -63,6 +63,7 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
     print("  [g] Fit a Gaussian to the beam manually")
     print("  [s] Increases roi size value by 20 pixels")
     print("  [d] Decreases roi size value by 20 pixels")
+    print("  [p] Manually change exposure time")
     print("  [r] Record current sample (adds to buffer)")
     print("  [R] Finalize buffer (mean/std saved to dataset)")
     print("  [n] Move camera (input distance in inches)")
@@ -70,7 +71,6 @@ def beam_profile_fit(roi_size=300, downsample=2, exposure='auto', gain='auto',
     print("  []] Increase the true coordinate rotation angle by 1 degree")
     print("  [f] Fit data and finish")
     print("  [q] Quit without fitting")
-    print(" Test")
 
     plt.ion()
     plt.figure("Beam Width Live Plot")
