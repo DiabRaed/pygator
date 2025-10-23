@@ -93,7 +93,7 @@ See example in
   - `downsample=2` → averages 2×2 blocks  
   - `downsample=4` → averages 4×4 blocks  
 
-- **`--pixel-size`**: camera pixel size in µm (default: 6.9).  
+- **`--pixel-size`**: camera pixel size in µm (default: 3.45).  
 - **`--output`**: name of CSV file to save (in current directory).  
 - **`--mode`**: `"heatmap"` or `"gray"` (default: `"gray"`).  
 - **`--theta_val`**: True coordinates rotation angle in degrees (default: 0 degrees).  
