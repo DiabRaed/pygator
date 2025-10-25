@@ -1,2 +1,2 @@
 # my_package/__init__.py
-__version__ = "1.1.6"
+__version__ = "1.1.7"
