@@ -121,3 +121,11 @@ plt.show()
 print("Original phase: max - min: ",phi.max()-phi.min())
 print("Recovered phase: max - min: ",recovered_unwrapped.max()-recovered_unwrapped.min())
 # %%
+
+# let us find the RMS between both phase maps
+rms_results = [np.sqrt((1/160000)*((a-b)**2)) for a, b in zip(recovered_unwrapped, phi+np.pi)]
+
+plt.imshow(rms_results,cmap='jet')
+plt.colorbar()
+
+
