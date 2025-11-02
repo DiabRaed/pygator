@@ -1,0 +1,7 @@
+Pygator License 2025
+
+Copyright (c) 2025 Raed Diab
+
+Permission is hereby granted, free of charge, to use this software for any purpose.
+Modification, redistribution, or commercial sale of this software is prohibited.
+This software is provided "as is" without warranty of any kind.

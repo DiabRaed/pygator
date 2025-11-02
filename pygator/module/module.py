@@ -562,71 +562,126 @@ def add_git_repo_to_path():
     
     sys.path.append(str(Path(repo_path)))
 
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
 
-def fit_beam_profile_curve_fit(zx_data, wx_data, zy_data, wy_data, w0guess, z0guess, wx_std, wy_std, z_std, show_plot=1, plotpts=1000, title='Beam scan fit', saveplot=False, filename='beamfit.pdf',print_results=True):
+def fit_beam_profile_curve_fit(
+    zx_data, wx_data, zy_data, wy_data,
+    w0guess, z0guess,
+    wx_std, wy_std,
+    z_std=0.005,
+    wavelength=1064e-9,
+    M=1.0,  # optional M² factor
+    show_plot=True, plotpts=1000,
+    title='Beam scan fit',
+    saveplot=False, filename='beamfit.pdf',
+    print_results=True
+):
     """
-    Fits beam radius data to the Gaussian propagation function using curve_fit, with zR as a free parameter, including standard deviations.
+    Fits beam radius data to the Gaussian propagation function using curve_fit, 
+    optionally including M² as a free parameter.
     """
-    def w_of_z(z, w0, z0):
-        wavelength=1064e-9
-        zR=np.pi*w0**2/wavelength
-        w = w0 * np.sqrt(1 + ((z - z0) / zR)**2)
-        return w
+    # Gaussian beam function with optional M²
+    if M == 1.0:
+        def w_of_z(z, w0, z0):
+            zR = np.pi * w0**2 / wavelength
+            return w0 * np.sqrt(1 + ((z - z0)/zR)**2)
+        p0 = [w0guess, z0guess]
+        bounds = ([0, -np.inf], [np.inf, np.inf])
+    else:
+        def w_of_z(z, w0, z0, M2):
+            return w0 * np.sqrt(1 + ((M2 * wavelength * (z - z0)) / (np.pi * w0**2))**2)
+        p0 = [w0guess, z0guess, M]
+        bounds = ([0, -np.inf, 1.0], [np.inf, np.inf, np.inf])  # constrain M² ≥ 1
 
     try:
-        popt_x, pcov_x = curve_fit(w_of_z, zx_data, wx_data, p0=[w0guess, z0guess], sigma=wx_std, absolute_sigma=False,bounds=([0, -np.inf], [np.inf, np.inf]))
-        w0out_x, z0out_x = popt_x
-        w0out_x_err, z0out_x_err = np.sqrt(np.diag(pcov_x))
+        if M == 1.0:
+            popt_x, pcov_x = curve_fit(w_of_z, zx_data, wx_data, p0=p0,
+                                       sigma=wx_std, absolute_sigma=False,
+                                       bounds=bounds)
+            w0out_x, z0out_x = popt_x
+            w0out_x_err, z0out_x_err = np.sqrt(np.diag(pcov_x))
 
-        popt_y, pcov_y = curve_fit(w_of_z, zy_data, wy_data, p0=[w0guess, z0guess], sigma=wy_std, absolute_sigma=False,bounds=([0, -np.inf], [np.inf, np.inf]))
-        w0out_y, z0out_y = popt_y
-        w0out_y_err, z0out_y_err = np.sqrt(np.diag(pcov_y))
+            popt_y, pcov_y = curve_fit(w_of_z, zy_data, wy_data, p0=p0,
+                                       sigma=wy_std, absolute_sigma=False,
+                                       bounds=bounds)
+            w0out_y, z0out_y = popt_y
+            w0out_y_err, z0out_y_err = np.sqrt(np.diag(pcov_y))
+        else:
+            popt_x, pcov_x = curve_fit(w_of_z, zx_data, wx_data, p0=p0,
+                                       sigma=wx_std, absolute_sigma=False,
+                                       bounds=bounds)
+            w0out_x, z0out_x, M2_x = popt_x
+            w0out_x_err, z0out_x_err, M2_x_err = np.sqrt(np.diag(pcov_x))
+
+            popt_y, pcov_y = curve_fit(w_of_z, zy_data, wy_data, p0=p0,
+                                       sigma=wy_std, absolute_sigma=False,
+                                       bounds=bounds)
+            w0out_y, z0out_y, M2_y = popt_y
+            w0out_y_err, z0out_y_err, M2_y_err = np.sqrt(np.diag(pcov_y))
 
     except (RuntimeError, ValueError) as e:
         print(f"Fit failed: {e}")
         return None, None
 
+    # ---- Plot ----
+    z_min = min(np.min(zx_data), np.min(zy_data))
+    z_max = max(np.max(zx_data), np.max(zy_data))
+    z_span = z_max - z_min
+    z_fit = np.linspace(z_min - 0.3*z_span, z_max + 0.3*z_span, plotpts)
 
-    if show_plot == 1:
-        z_min = min(np.min(zx_data), np.min(zy_data))
-        z_max = max(np.max(zx_data), np.max(zy_data))
-        z_span = z_max - z_min
-        z_extrapolate_min = z_min - 0.3 * z_span
-        z_extrapolate_max = z_max + 0.3 * z_span
-
-        z_fit = np.linspace(z_extrapolate_min, z_extrapolate_max, plotpts)
+    if M == 1.0:
         w_fit_x = w_of_z(z_fit, w0out_x, z0out_x)
         w_fit_y = w_of_z(z_fit, w0out_y, z0out_y)
+    else:
+        w_fit_x = w_of_z(z_fit, w0out_x, z0out_x, M2_x)
+        w_fit_y = w_of_z(z_fit, w0out_y, z0out_y, M2_y)
 
+    if show_plot:
         plt.figure(figsize=(5.5, 4))
-        plt.errorbar(zx_data, wx_data * 1e6, xerr=z_std, yerr=wx_std * 1e6, fmt='o', color='blue', label='Data X')
-        plt.plot(z_fit, w_fit_x * 1e6, color='blue', label='Fit X')
-        plt.errorbar(zy_data, wy_data * 1e6, xerr=z_std, yerr=wy_std * 1e6, fmt='o', color='green', label='Data Y')
-        plt.plot(z_fit, w_fit_y * 1e6, color='green', label='Fit Y')
-        plt.tight_layout()
+        plt.errorbar(zx_data, wx_data*1e6, xerr=z_std, yerr=wx_std*1e6,
+                     fmt='o', color='blue', label='Data X')
+        plt.plot(z_fit, w_fit_x*1e6, color='blue', label='Fit X')
+        plt.errorbar(zy_data, wy_data*1e6, xerr=z_std, yerr=wy_std*1e6,
+                     fmt='o', color='green', label='Data Y')
+        plt.plot(z_fit, w_fit_y*1e6, color='green', label='Fit Y')
         plt.xlabel('Position [m]')
         plt.ylabel('Beam size [$\\mu$m]')
-        plt.xlim((z_extrapolate_min, z_extrapolate_max))
-        plt.legend(loc='best')
         plt.title(title)
         plt.grid(True)
-
+        plt.legend()
+        plt.tight_layout()
         if saveplot:
             plt.savefig(filename)
         plt.show()
-    sol_x=(w0out_x, z0out_x, w0out_x_err, z0out_x_err)
-    sol_y=(w0out_y, z0out_y, w0out_y_err, z0out_y_err)
+
+    # ---- Results ----
+    if M == 1.0:
+        sol_x = (w0out_x, z0out_x, w0out_x_err, z0out_x_err)
+        sol_y = (w0out_y, z0out_y, w0out_y_err, z0out_y_err)
+    else:
+        sol_x = (w0out_x, z0out_x, M2_x, w0out_x_err, z0out_x_err, M2_x_err)
+        sol_y = (w0out_y, z0out_y, M2_y, w0out_y_err, z0out_y_err, M2_y_err)
 
     if print_results:
-        # Print the results with errors
-        print(f"Waist size for x data: {sol_x[0]:.2e} ± {sol_x[2]:.2e} m")
-        print(f"Waist location for x data: {sol_x[1]:.2e} ({sol_x[1]/0.0254:.2e} inches)± {sol_x[3]:.2e} m")
-        print(f"Waist size for y data: {sol_y[0]:.2e} ± {sol_y[2]:.2e} m")
-        print(f"Waist location for y data: {sol_y[1]:.2e} ({sol_y[1]/0.0254:.2e} inches)± {sol_y[3]:.2e} m")
-        print(f"Rayleigh range is {np.pi*sol_x[0]**2/1064e-9:.2e} m ({(np.pi*sol_x[0]**2/1064e-9)/0.0254:.2e} inches) ")
-        print(f"Rayleigh range beam size is {np.sqrt(2)*sol_x[0]:.2e}")
+        print(f"X-axis fit:")
+        print(f"  Waist w0 = {sol_x[0]:.2e} ± {sol_x[-3]:.2e} m")
+        print(f"  Waist z0 = {sol_x[1]:.2e} ± {sol_x[-2]:.2e} m ({sol_x[1]/0.0254:.2f} in)")
+        if M != 1.0:
+            print(f"  M² = {sol_x[2]:.3f} ± {sol_x[-1]:.3f}")
+        print(f"  Rayleigh range zR = {np.pi*sol_x[0]**2/(M*wavelength):.2e} m")
+
+        print(f"Y-axis fit:")
+        print(f"  Waist w0 = {sol_y[0]:.2e} ± {sol_y[-3]:.2e} m")
+        print(f"  Waist z0 = {sol_y[1]:.2e} ± {sol_y[-2]:.2e} m ({sol_y[1]/0.0254:.2f} in)")
+        if M != 1.0:
+            print(f"  M² = {sol_y[2]:.3f} ± {sol_y[-1]:.3f}")
+        print(f"  Rayleigh range zR = {np.pi*sol_y[0]**2/(M*wavelength):.2e} m")
 
     return sol_x, sol_y
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.odr import Model, RealData, ODR
@@ -637,6 +692,7 @@ def fit_beam_profile_ODR(
     wx_std, wy_std,
     z_std=0.005,
     wavelength=1064e-9,
+    M=1.0,  # Optional M² factor; 1 = ideal Gaussian
     show_plot=True, plotpts=1000,
     title='Beam scan fit',
     saveplot=False, filename='beamfit.pdf',
@@ -648,11 +704,15 @@ def fit_beam_profile_ODR(
             return np.full_like(like, val, dtype=float)
         return np.asarray(val, dtype=float)
 
-    # Gaussian beam model
+    # Gaussian beam model (optional M²)
     def w_of_z(beta, z):
-        w0, z0 = beta
-        zR = np.pi * w0**2 / wavelength
-        return w0 * np.sqrt(1 + ((z - z0)/zR)**2)
+        if M == 1.0:
+            w0, z0 = beta
+            zR = np.pi * w0**2 / wavelength
+            return w0 * np.sqrt(1 + ((z - z0)/zR)**2)
+        else:
+            w0, z0, M2 = beta
+            return w0 * np.sqrt(1 + ((M2 * wavelength * (z - z0)) / (np.pi * w0**2))**2)
 
     def run_fit(z, w, sx, sy, beta0):
         model = Model(w_of_z)
@@ -676,19 +736,37 @@ def fit_beam_profile_ODR(
     sy_x = apply_weighting(wx_data, sy_x_meas)
     sy_y = apply_weighting(wy_data, sy_y_meas)
 
+    # ---- Prepare initial guess ----
+    if M == 1.0:
+        beta0 = [w0guess, z0guess]
+    else:
+        beta0 = [w0guess, z0guess, M]
+
     # ---- X axis fit ----
-    out_x = run_fit(zx_data, wx_data, sx_x, sy_x, [w0guess, z0guess])
-    w0_x, z0_x = out_x.beta
-    w0_x_err, z0_x_err = out_x.sd_beta
-    zR_x = np.pi * w0_x**2 / wavelength
-    zR_x_err = (2 * np.pi * w0_x / wavelength) * w0_x_err
+    out_x = run_fit(zx_data, wx_data, sx_x, sy_x, beta0)
+    if M == 1.0:
+        w0_x, z0_x = out_x.beta
+        w0_x_err, z0_x_err = out_x.sd_beta
+        zR_x = np.pi * w0_x**2 / wavelength
+        zR_x_err = (2 * np.pi * w0_x / wavelength) * w0_x_err
+    else:
+        w0_x, z0_x, M2_x = out_x.beta
+        w0_x_err, z0_x_err, M2_x_err = out_x.sd_beta
+        zR_x = np.pi * w0_x**2 / (M2_x * wavelength)
+        zR_x_err = (2 * np.pi * w0_x / (M2_x * wavelength)) * w0_x_err
 
     # ---- Y axis fit ----
-    out_y = run_fit(zy_data, wy_data, sx_y, sy_y, [w0guess, z0guess])
-    w0_y, z0_y = out_y.beta
-    w0_y_err, z0_y_err = out_y.sd_beta
-    zR_y = np.pi * w0_y**2 / wavelength
-    zR_y_err = (2 * np.pi * w0_y / wavelength) * w0_y_err
+    out_y = run_fit(zy_data, wy_data, sx_y, sy_y, beta0)
+    if M == 1.0:
+        w0_y, z0_y = out_y.beta
+        w0_y_err, z0_y_err = out_y.sd_beta
+        zR_y = np.pi * w0_y**2 / wavelength
+        zR_y_err = (2 * np.pi * w0_y / wavelength) * w0_y_err
+    else:
+        w0_y, z0_y, M2_y = out_y.beta
+        w0_y_err, z0_y_err, M2_y_err = out_y.sd_beta
+        zR_y = np.pi * w0_y**2 / (M2_y * wavelength)
+        zR_y_err = (2 * np.pi * w0_y / (M2_y * wavelength)) * w0_y_err
 
     # ---- Plot ----
     if show_plot:
@@ -725,15 +803,20 @@ def fit_beam_profile_ODR(
         print(f"  Waist w0 = {w0_x:.3e} ± {w0_x_err:.2e} m")
         print(f"  Waist z0 = {z0_x:.3e} ± {z0_x_err:.2e} m ({z0_x/0.0254:.2f} in)")
         print(f"  Rayleigh range zR = {zR_x:.3e} ± {zR_x_err:.2e} m")
+        if M != 1.0:
+            print(f"  M² = {M2_x:.3f} ± {M2_x_err:.3f}")
         print(f"  Reduced χ² = {out_x.res_var:.3f}\n")
 
         print(f"Y-axis fit:")
         print(f"  Waist w0 = {w0_y:.3e} ± {w0_y_err:.2e} m")
         print(f"  Waist z0 = {z0_y:.3e} ± {z0_y_err:.2e} m ({z0_y/0.0254:.2f} in)")
         print(f"  Rayleigh range zR = {zR_y:.3e} ± {zR_y_err:.2e} m")
+        if M != 1.0:
+            print(f"  M² = {M2_y:.3f} ± {M2_y_err:.3f}")
         print(f"  Reduced χ² = {out_y.res_var:.3f}")
 
     return sol_x, sol_y
+
 
 encoding = 'latin1'
 import re

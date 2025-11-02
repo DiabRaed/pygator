@@ -12,5 +12,6 @@ setup(
     description="A package for optical utilities",
     author="Raed Diab",
     author_email="contact@raeddiab.com",
+    license="Proprietary - Free Use Only",
     url="https://github.com/DiabRaed/pygator",                     # optional, GitHub repo URL
 )
