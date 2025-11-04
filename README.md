@@ -39,7 +39,7 @@ Please cite pygator using the version you used:
 
 - Version used in this work: Diab, R., *pygator*, v1.1.7, University of Florida, 2025, DOI: [10.5281/zenodo.17477372](https://doi.org/10.5281/zenodo.17477372
 )
-- For the general package: Concept DOI [10.5281/zenodo.17477372](https://doi.org/10.5281/zenodo.17477372)
+- For the general package: Concept DOI [10.5281/zenodo.17504359](https://doi.org/10.5281/zenodo.17504359)
 
 
 <!-- 
