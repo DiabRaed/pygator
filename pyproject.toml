@@ -10,7 +10,6 @@ readme = "README.md"
 authors = [
     { name = "Raed Diab", email = "contact@raeddiab.com" }
 ]
-license = "Proprietary - Free Use Only"
 keywords = ["LIGO", "LISA", "optics", "laser", "UF"]
 dependencies = [
     "numpy>=1.24",

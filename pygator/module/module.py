@@ -579,8 +579,58 @@ def fit_beam_profile_curve_fit(
     print_results=True
 ):
     """
-    Fits beam radius data to the Gaussian propagation function using curve_fit, 
+    Fit Gaussian beam radii vs. position data using nonlinear least squares (curve_fit),
     optionally including M² as a free parameter.
+
+    Parameters
+    ----------
+    zx_data, zy_data : array-like
+        Beam positions along x and y axes [m].
+    wx_data, wy_data : array-like
+        Measured beam radii along x and y axes [m].
+    w0guess : float
+        Initial guess for beam waist (minimum radius) [m].
+    z0guess : float
+        Initial guess for waist location along z-axis [m].
+    wx_std, wy_std : array-like or float
+        Standard deviation of measured beam radii [m] for weighting.
+    z_std : float, optional
+        Standard deviation of z positions [m], default 0.005 m.
+    wavelength : float, optional
+        Laser wavelength [m], default 1064e-9 m.
+    M : float, optional
+        Optional M² factor; 1.0 = ideal Gaussian. If >1, included as a fit parameter.
+    show_plot : bool, optional
+        If True, display fit plot. Default True.
+    plotpts : int, optional
+        Number of points for plotting the fitted curve. Default 1000.
+    title : str, optional
+        Plot title. Default 'Beam scan fit'.
+    saveplot : bool, optional
+        If True, saves the plot to `filename`. Default False.
+    filename : str, optional
+        File name for saving plot. Default 'beamfit.pdf'.
+    print_results : bool, optional
+        If True, prints fitted parameters. Default True.
+
+    Returns
+    -------
+    sol_x, sol_y : tuple
+        Tuples containing fitted parameters for x and y axes:
+        If M == 1.0:
+            (w0, z0, w0_err, z0_err)
+        If M != 1.0:
+            (w0, z0, w0_err, z0_err, M2, M2_err)
+        where w0 = beam waist, z0 = waist position, w0_err/z0_err = 1σ errors,
+        M2 = fitted M², M2_err = its 1σ error (only returned if M != 1.0).
+
+    Notes
+    -----
+    - The function uses scipy.curve_fit to fit the Gaussian beam propagation formula.
+    - Beam radii are plotted in micrometers.
+    - Rayleigh range is calculated internally and printed if `print_results` is True.
+    - Tuples always have first 4 elements as (w0, z0, w0_err, z0_err), so existing code
+      that unpacks these will continue to work without modification.
     """
     # Gaussian beam function with optional M²
     if M == 1.0:
@@ -661,8 +711,8 @@ def fit_beam_profile_curve_fit(
         sol_x = (w0out_x, z0out_x, w0out_x_err, z0out_x_err)
         sol_y = (w0out_y, z0out_y, w0out_y_err, z0out_y_err)
     else:
-        sol_x = (w0out_x, z0out_x, M2_x, w0out_x_err, z0out_x_err, M2_x_err)
-        sol_y = (w0out_y, z0out_y, M2_y, w0out_y_err, z0out_y_err, M2_y_err)
+        sol_x = (w0out_x, z0out_x, w0out_x_err, z0out_x_err, M2_x, M2_x_err)
+        sol_y = (w0out_y, z0out_y, w0out_y_err, z0out_y_err, M2_y, M2_y_err)
 
     if print_results:
         print(f"X-axis fit:")
@@ -699,6 +749,60 @@ def fit_beam_profile_ODR(
     print_results=True,
     weight_factor=0.0  # 0 = no weighting, 1 = full distance weighting
 ):
+    """
+    Fit Gaussian beam radii vs. position data using Orthogonal Distance Regression (ODR).
+
+    Parameters
+    ----------
+    zx_data, zy_data : array-like
+        Beam propagation positions along x and y axes [m].
+    wx_data, wy_data : array-like
+        Measured beam radii along x and y axes [m].
+    w0guess : float
+        Initial guess for beam waist (minimum radius) [m].
+    z0guess : float
+        Initial guess for waist location along z-axis [m].
+    wx_std, wy_std : array-like or float
+        Standard deviations of measured beam radii [m] for weighting.
+    z_std : float or array-like, optional
+        Standard deviation of z positions [m], default 0.005 m.
+    wavelength : float, optional
+        Laser wavelength [m], default 1064e-9 m.
+    M : float, optional
+        Optional M² factor; 1.0 = ideal Gaussian. If >1, included as a fit parameter.
+    show_plot : bool, optional
+        If True, display fit plot. Default True.
+    plotpts : int, optional
+        Number of points for plotting the fitted curve. Default 1000.
+    title : str, optional
+        Plot title. Default 'Beam scan fit'.
+    saveplot : bool, optional
+        If True, saves the plot to `filename`. Default False.
+    filename : str, optional
+        File name for saving plot. Default 'beamfit.pdf'.
+    print_results : bool, optional
+        If True, prints fitted parameters and reduced χ². Default True.
+    weight_factor : float, optional
+        Weighting exponent for beam size: 0 = no weighting, 1 = linear. Default 0.
+
+    Returns
+    -------
+    sol_x, sol_y : tuple
+        Tuples containing fitted parameters for x and y axes:
+        If M == 1.0:
+            (w0, z0, w0_err, z0_err)
+        If M != 1.0:
+            (w0, z0, w0_err, z0_err, M2, M2_err)
+        where w0 = beam waist, z0 = waist position, w0_err/z0_err = 1σ errors,
+        M2 = fitted M², M2_err = its 1σ error (only returned if M != 1.0).
+
+    Notes
+    -----
+    - The function uses ODR to account for uncertainties in both z and w measurements.
+    - Beam radii are converted to micrometers in the plot.
+    - The Rayleigh range is calculated internally and printed if `print_results` is True.
+    - Compatible with existing code that unpacks the first 4 elements as (w0, z0, w0_err, z0_err).
+    """
     def as_array(val, like):
         if np.ndim(val) == 0:
             return np.full_like(like, val, dtype=float)
@@ -794,9 +898,12 @@ def fit_beam_profile_ODR(
             plt.savefig(filename)
         plt.show()
 
-    # ---- Results ----
-    sol_x = (w0_x, z0_x, zR_x, w0_x_err, z0_x_err, zR_x_err)
-    sol_y = (w0_y, z0_y, zR_y, w0_y_err, z0_y_err, zR_y_err)
+    if M == 1.0:
+        sol_x = (w0_x, z0_x, w0_x_err, z0_x_err)
+        sol_y = (w0_y, z0_y, w0_y_err, z0_y_err)
+    else:
+        sol_x = (w0_x, z0_x, w0_x_err, z0_x_err, M2_x, M2_x_err)
+        sol_y = (w0_y, z0_y, w0_y_err, z0_y_err, M2_y, M2_y_err)
 
     if print_results:
         print(f"X-axis fit:")
