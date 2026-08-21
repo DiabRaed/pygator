@@ -5,17 +5,17 @@ import matplotlib.pyplot as plt
 import sympy as sp
 
 #Let's build numerical HG modes
-x=y=np.linspace(-3e-3,3e-3,400)
-w0=400e-6
-z=0
+w0=0.1
+z=0.1
 wavelength=1064e-9
 zr=np.pi*w0**2/wavelength
+x=y=np.linspace(-3*w0,3*w0,400)
 hg00=pygator.module.HG_mode_num(x,y,n=0,m=0,q=z+1j*zr)
 hg10=pygator.module.HG_mode_num(x,y,n=1,m=0,q=z+1j*zr)
 
 
 extend=[x.min(),x.max(),y.min(),y.max()]
-signal=hg00['U']
+signal=hg00['U']+0.1*hg10['U']
 fig, axs = plt.subplots(1, 2, figsize=(12, 5))
 
 # Magnitude plot
@@ -74,10 +74,10 @@ try:
     x_tm = y_tm = np.linspace(-R_TM, R_TM, num_pts)
     xx, yy = np.meshgrid(x_tm, y_tm)
 
-    hg00=pygator.module.HG_mode_num(x_tm,y_tm,n=1,m=0,q=q_0)
+    hg00=pygator.module.HG_mode_num(x_tm,y_tm,n=0,m=0,q=q_0)
 
     ###########################
-    HG00_0 = HGMode(q_0, n=0, m=1)
+    HG00_0 = HGMode(q_0, n=0, m=0)
     HG00_data_0 = HG00_0.unm(x_tm, y_tm)
 
     extend=[xx.min(),xx.max(),yy.min(),yy.max()]
