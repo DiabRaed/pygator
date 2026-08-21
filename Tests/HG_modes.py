@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import sympy as sp
 
 #Let's build numerical HG modes
-w0=0.1
-z=0.1
+w0=300e-6
+z=0.05
 wavelength=1064e-9
 zr=np.pi*w0**2/wavelength
 x=y=np.linspace(-3*w0,3*w0,400)
@@ -15,7 +15,7 @@ hg10=pygator.module.HG_mode_num(x,y,n=1,m=0,q=z+1j*zr)
 
 
 extend=[x.min(),x.max(),y.min(),y.max()]
-signal=hg00['U']+0.1*hg10['U']
+signal=hg00['U']+0.1j*hg10['U']
 fig, axs = plt.subplots(1, 2, figsize=(12, 5))
 
 # Magnitude plot
@@ -24,7 +24,7 @@ axs[0].set_title('Magnitude')
 plt.colorbar(im0, ax=axs[0])
 
 # Phase plot
-im1 = axs[1].imshow(np.angle(signal),extent=extend, cmap='jet')
+im1 = axs[1].imshow(np.angle(signal)-np.angle(hg00['U']),extent=extend, cmap='jet')
 axs[1].set_title('Phase')
 plt.colorbar(im1, ax=axs[1])
 
@@ -65,7 +65,7 @@ try:
     w0 = 1e-3
     zR = np.pi*w0**2/wavelength
 
-    q_0 = 0+1j*zR # at the waist
+    q_0 = 0.1+1j*zR # at the waist
 
     R_TM = 2*w0
     num_pts = 1201
@@ -73,11 +73,12 @@ try:
 
     x_tm = y_tm = np.linspace(-R_TM, R_TM, num_pts)
     xx, yy = np.meshgrid(x_tm, y_tm)
-
-    hg00=pygator.module.HG_mode_num(x_tm,y_tm,n=0,m=0,q=q_0)
+    n=0
+    m=0
+    hg00=pygator.module.HG_mode_num(x_tm,y_tm,n=m,m=n,q=q_0)
 
     ###########################
-    HG00_0 = HGMode(q_0, n=0, m=0)
+    HG00_0 = HGMode(q_0, n=n, m=m)
     HG00_data_0 = HG00_0.unm(x_tm, y_tm)
 
     extend=[xx.min(),xx.max(),yy.min(),yy.max()]
